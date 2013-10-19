@@ -1,26 +1,21 @@
 ﻿// This code will be changed for the storage.sync call of Chrome.
-function GSync (_opt) {
+function GsSync (_opt) {
 
     this.options = {};
 
+    /** Initializes GsSync, part of function In BSync also traverses bookmark folders by 1 level.
+     * @param _19 the option _opt in parent scope.
+     * @scope Internal
+     * */
     this.initialize = function (_19) {
-        var _1a = this;
         this.setOptions(_19);
-        if (this.options.debug) {}
-        if (!this.options.parent) {
-            chrome.bookmarks.getChildren("0", function (_1b) {
-                _1b.forEach(
-
-                function (_1c, _1d) {
-                  if(_1d === 1) {
-                    _1a.options.parent = _1c.id
-                  }
-                })
-            })
-        }
         return this
     }
 
+    /** Seems to create a hook to bookmark changes. Returned value is returned by start() if not "already attached"
+     * @scope Internal
+     * @returns Self with modified options OR Self with setup bookmark "create/remove" listeners
+     */
     this.attach = function () {
         var _1e = this;
         if (this.isAttached) {
@@ -75,6 +70,10 @@ function GSync (_opt) {
         });
         return this
     }
+    /** Tests for network activity via google's favicon. Uses the traverse function if network is up; passing "true"
+     * @scope Internal
+     * @returns self, after setting up a callback to http request
+     */
     this.testNetwork = function () {
         var xhr = new XMLHttpRequest(),
             _26 = this;
@@ -96,6 +95,10 @@ function GSync (_opt) {
             };
         return this
     }
+    /** Part of the traverse function. Recursively calls traverse.
+     * @scope internal
+     * @returns Returns a this.folder, or false.
+     */
     this.getFolder = function () {
         var _28 = this;
         if (this.folder) {
@@ -143,6 +146,12 @@ function GSync (_opt) {
             });
         return false
     }
+    /** Traverse function. Called by "attach", "getNetwork" and "getFolder" recrusive.
+     * @scope internal
+     * @param _34 Network is active. If the parameter is undef, and the testNetwork option is enabled, and current func
+     *  isn't a folder then call test network and pass _34 as the network activity in.
+     * @returns Itself. or the results of testNetwork(), getFolder() or start()
+     */
     this.traverse = function (_34) {
         var _35 = this,
             _36 = [],
@@ -208,6 +217,13 @@ function GSync (_opt) {
             });
         return this.start()
     }
+    /** Called by attach and traverse. Core logic deciding what should be done, and adding meta data to the objects being
+     * stored.
+     * @scope internal
+     * @param _42 The object that contains an array of items to sync. This is wrapped by bsync
+     * @param _43 Boolean, if true b/c it came from "attach" I think indicates first enable.
+     * @returns self or undef if error
+     */
     this.process = function (_42, _43) {
         var _44, _45 = this;
         if (!(_44 = this.getJSON(_42))) {
@@ -251,6 +267,10 @@ function GSync (_opt) {
         }
         return this
     }
+    /** Determines if the local data should be updated from sync source. Called from Process()
+     * @scope internal
+     * @returns boolean; true if content is defined, and is newer than local
+     */
     this.shouldRead = function () {
         if (this.options.debug) {
             console.log("\n\nChecking shouldRead()");
@@ -260,6 +280,10 @@ function GSync (_opt) {
         }
         return this.options.getUpdate() === undefined || (this.content && this.syncedAt > this.options.getUpdate())
     }
+    /** Determines if the local data should be written to sync source. Called from Process()
+     * @scope internal
+     * @returns boolean; true if content is defined, and is newer than sync source
+     */
     this.shouldWrite = function () {
         if (this.options.debug) {
             console.log("\n\nChecking shouldWrite()");
@@ -269,6 +293,12 @@ function GSync (_opt) {
         }
         return !this.content || (this.options.getUpdate() && (this.options.getUpdate() > this.syncedAt))
     }
+    /** Called by inherited object in background.js in onWrite(). Deletes older bookmark, creates new one with new
+     * content
+     * @scope Protected
+     * @param _47 Object to write to bookmark.
+     * @returns self or false on error
+     */
     this.write = function (_47) {
         var _48 = this;
         if (this.content) {
@@ -308,6 +338,11 @@ function GSync (_opt) {
         this.markTimestamp(true);
         return this
     }
+    /** Starts timer, and if bookmark hook hasn't been registered. Register it. Called by background.js on param save,
+     * init(), and locally by traverse(), and attach()
+     * @scope public
+     * @returns self or result of attach().
+     */
     this.start = function () {
         if (!this.isAttached) {
             return this.attach()
@@ -319,6 +354,11 @@ function GSync (_opt) {
         this.isRunning = true;
         return this
     }
+    /** Starts timer, and if bookmark hook hasn't been registered. Register it. Called by background.js on param save / change,
+     * and locally by and attach() (For a restart.)
+     * @scope public
+     * @returns self or result of attach().
+     */
     this.stop = function () {
         if (!this.isRunning) {
             return this
@@ -328,6 +368,11 @@ function GSync (_opt) {
         this.isRunning = false;
         return this
     }
+    /** Copies options provided by constructor into code. called by initialize() only
+     * @scope internal
+     * @param _4f
+     * @returns {*}
+     */
     this.setOptions = function (_4f) {
         var _50 = this,
             fn, _52;
@@ -340,10 +385,21 @@ function GSync (_opt) {
             }
         return this
     }
+    /** Called by Process() and write(). Updates timestamps in data structure depending on source
+     * @scope internal
+     * @param _54 boolean, true if called from write()
+     * @returns self
+     */
     this.markTimestamp = function (_54) {
         this["synced" + (_54 ? "To" : "From")] = new Date().getTime();
         return this
     }
+    /** Converts a bookmarked / js-idle wrapped json structure back into something that usable. Called by process() Also
+     * tests for validility
+     * @scope internal
+     * @param _55
+     * @returns JSON object, or an empty string if a parse error occurred
+     */
     this.getJSON = function (_55) {
         var _56 = _55.url,
             _57, _58 = "";
@@ -360,6 +416,11 @@ function GSync (_opt) {
             }
         return _58
     }
+    /** Tests to see if bookmark is a valid bsync bookmark by name. Updates last known Sync time to value
+     * @scope internal
+     * @param _59 bookmark object
+     * @returns false if _59 is undef or not a bookmark. Otherwise the unix time of last sync.
+     */
     this.isValidBookmark = function (_59) {
         var _5a;
         if (!_59) {
@@ -375,11 +436,3 @@ function GSync (_opt) {
     this.initialize(_opt);
     return this
 };
-
-function eachSync (obj, fn, _30) {
-    for (var _31 in obj) {
-        if (!(_31 === "extend" && $typeOf(obj[_31]) === "function")) {
-            fn.call(_30, obj[_31], _31)
-        }
-    }
-}
