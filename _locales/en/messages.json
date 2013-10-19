@@ -353,49 +353,61 @@
     "message": "When AMR is updated to a new version, automatically load the release note page. (If not, an icon in the popup will warn you that your version has been updated)",
     "description": "Option to open release note on new release"
   },
-  "options_sync": {
-    "message": "Synchronize my mangas over my computers",
-    "description": "Option to synchronize manga list"
+  "options_sync_bsync": {
+    "message": "Synchronize my mangas over my computers using BSync",
+    "description": "Option to synchronize manga list via BSync"
   },
   "options_sync_expl": {
     "message": "If you choose to synchronize your mangas, your list of manga and the latest chapters you read will be synchronize. Your options won't be synchronized because of the possible differences of your computers.",
     "description": "Sync explanation"
   },
-  "options_sync_help_1": {
+  "options_sync_bsync_help_1": {
     "message": "To allow this functionality, AMR uses your bookmarks. You must enable synchronization of your bookmarks in Google Chrome to make it work.",
     "description": "Sync help text 1"
   },
-  "options_sync_help_2": {
+  "options_sync_bsync_help_2": {
     "message": "Help here",
     "description": "Sync help text 2"
   },
-  "options_sync_help_3": {
+  "options_sync_bsync_help_3": {
     "message": "To do this, you can use build in chrome synchronization with your google account (in chrome options > Personal Data, click on the synchronize button, log in your google account and choose to synchronize bookmarks) If you prefer to use another bookmark sync (like with XMarks), you can do it.",
     "description": "Sync help text 3"
   },
-  "options_sync_help_4": {
+  "options_sync_bsync_help_4": {
     "message": "As All Mangas Reader synchronizes its data every five minutes, the synchronization is not immediate. Chrome synchronization and XMarks both synchronizes incoming data every few hours, so don't expect your changes to appear immediately. You can force synchronization of your data in XMarks by clicking \"Synchronize Now\". With chrome synchronization, you can't force sync. When you read a manga, the bookmark will be modified within five minutes but the incoming synchronization takes more time. To force it, the best way is to relaunch Google Chrome or to disable and reenable synchronization.",
     "description": "Sync help text 4"
   },
-  "options_sync_help_5": {
+  "options_sync_bsync_help_5": {
     "message": "Please note that google chrome is limited in bookmarks synchronization. It authorizes until 100 updates of bookmarks. So, sometimes, your bookmark won't be sync...",
     "description": "Sync help text 5"
   },
-  "options_sync_help_6": {
+  "options_sync_bsync_help_6": {
     "message": "To make this work, All Mangas Reader creates a folder in your \"Other Bookmarks\" section which is named \"BSync\". This functionnality has been implemented thanks to phaistonian very good code.",
     "description": "Sync help text 6"
   },
-  "options_sync_help_7": {
+  "options_sync_bsync_help_7": {
     "message": "To Read before syncing",
     "description": "Sync help text 7"
   },
-  "options_sync_help_8": {
+  "options_sync_bsync_help_8": {
     "message": "When syncing is enabled, a text at the bottom of the extension popup indicate when the last synchronization has been done.",
     "description": "Sync help text 8"
   },
-  "options_sync_help_9": {
+  "options_sync_bsync_help_9": {
     "message": "If AMR is already installed on multiple computers, when you activate synchronization, it is possible that you loose a few data. The best way is to enable synchronisation on one computer only, to wait for the AMR bookmark to appear on the other computers (Other Bookmarks > BSync > All Mangas Reader.xxxxxxx) and then to activate synchronization on other computers",
     "description": "Sync help text 9"
+  },
+  "options_sync_gssync": {
+      "message": "Synchronize my mangas over my computers using GsSync",
+      "description": "Option to synchronize manga list via GsSync"
+  },
+  "options_sync_gssync_url": {
+      "message": "Google Drive Spreadsheet link to the spreadsheet you wish to use to sync",
+      "description": "Link to google drive spreadsheet"
+  },
+  "options_sync_gssync_help_1": {
+      "message": "To allow this functionality, AMR uses your bookmarks. You must enable provide a URL to a google spreadsheet in-order to make it work.",
+      "description": "Sync help text 1"
   },
   "options_website_sup": {
     "message": "AMR provides many supported Web Sites. For each web sites, AMR stores the list of existing mangas. To prevent AMR from using too much RAM, you can deactivate web sites you don't use. Only web sites for which you don't have mangas in your reading list can be deactivated.",

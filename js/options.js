@@ -89,7 +89,9 @@ function save_options() {
   obj.popupMode = (document.getElementById("popupMode1").checked ? 1 : 2);
   obj.omSite = 0;
   obj.newTab = (document.getElementById("newTab").checked ? 1 : 0);
-  obj.sync = (document.getElementById("syncMg").checked ? 1 : 0);
+  obj.sync = (document.getElementById("bsyncMg").checked ? 1 : 0);
+  obj.gssync = (document.getElementById("gssyncMg").checked ? 1 : 0);
+  obj.gssyncUrl = (document.getElementById("gssyncUrl").value);
   obj.displayzero = (document.getElementById("displayZero").checked ? 1 : 0);
   obj.pub = (document.getElementById("pubAMR").checked ? 1 : 0);
   obj.dev = (document.getElementById("devAMR").checked ? 1 : 0);
@@ -417,7 +419,9 @@ function restore_options() {
   document.getElementById("popupMode1").checked = (response.popupMode === 1);
   document.getElementById("popupMode2").checked = (response.popupMode === 2);
   document.getElementById("newTab").checked = (response.newTab !== 0);
-  document.getElementById("syncMg").checked = (response.sync !== 0);
+  document.getElementById("bsyncMg").checked = (response.sync !== 0);
+  document.getElementById("gssyncMg").checked = (response.gssync !== 0);
+  document.getElementById("gssyncUrl").value = response.gssyncUrl;
   document.getElementById("displayZero").checked = (response.displayzero !== 0);
   document.getElementById("pubAMR").checked = (response.pub !== 0);
   document.getElementById("devAMR").checked = (response.dev !== 0);

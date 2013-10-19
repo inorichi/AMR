@@ -780,6 +780,8 @@ chrome.extension.onRequest.addListener(function (request, sender, sendResponse) 
         obj.omSite = request.omSite;
         obj.newTab = request.newTab;
         obj.sync = request.sync;
+        obj.gssync = request.gssync;
+        obj.gssyncUrl = request.gssyncUrl;
         obj.displayzero = request.displayzero;
         obj.pub = request.pub;
         obj.dev = request.dev;
@@ -1425,6 +1427,8 @@ function getParameters() {
         initParam(res, "omSite", 0);
         initParam(res, "newTab", 0);
         initParam(res, "sync", 0);
+        initParam(res, "gssync", 0);
+        initParam(res, "gssyncUrl", "");
         initParam(res, "displayzero", 1);
         initParam(res, "pub", 1);
         initParam(res, "dev", 0);
@@ -1466,6 +1470,8 @@ function defaultParams() {
     obj.omSite = 0;
     obj.newTab = 0;
     obj.sync = 0;
+    obj.gssync = 0;
+    obj.gssyncUrl = "";
     obj.displayzero = 1;
     obj.pub = 1;
     obj.dev = 0;
