@@ -29,7 +29,7 @@
         }
         console.log("Setting timer to run " + this.options.interval);
         this.timer = setInterval(function () {
-            _gssync.content.debug >= 0 && console.log("GsSync Tick");
+            _gssync.options.debug >= 0 && console.log("GsSync Tick");
             _gssync.doSync();
         }, this.options.interval);
         return _gssync;
@@ -65,7 +65,7 @@
     this.doSync = function ()
     {
         var _gssync = this;
-        _gssync.content.debug >= 0 && console.log("GsSync Tick: doSync");
+        _gssync.options.debug >= 0 && console.log("GsSync Tick: doSync");
         // Check to ensure ((new Date().getTime() - this.options.getUpdate()) < this.options.idleInterval
 //        if (!_34 && this.options.testNetwork && !this.folder) {
 //            return this.testNetwork()
@@ -89,7 +89,7 @@
      */
     this.syncActiveManga = function (key) {
         var _gssync = this;
-        _gssync.content.debug >= 2 && console.log("Syncing");
+        _gssync.options.debug >= 2 && console.log("Syncing");
 
         var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)^");
         var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
@@ -106,8 +106,8 @@
             },
             error: function(jqXHR, textStatus, errorThrown)
             {
-                _gssync.content.debug >= 1 && console.log(textStatus);
-                _gssync.content.debug >= 1 && console.log(errorThrown);
+                _gssync.options.debug >= 1 && console.log(textStatus);
+                _gssync.options.debug >= 1 && console.log(errorThrown);
                 _gssync.doingSync = false;
             },
             timeout: _gssync.content.timeout
@@ -141,7 +141,7 @@
             success: function (data, textStatus, jqXHR)
             {
                 var response = $(data);
-                _gssync.content.debug >= 2 && console.log("Got created sheet" + storeKey);
+                _gssync.options.debug >= 2 && console.log("Got created sheet" + storeKey);
                 response.find("entry").each(function (index, value)
                 {
                     var each = $(value);
@@ -155,8 +155,8 @@
             },
             error: function(jqXHR, textStatus, errorThrown)
             {
-                _gssync.content.debug >= 1 && console.log(textStatus);
-                _gssync.content.debug >= 1 && console.log(errorThrown);
+                _gssync.options.debug >= 1 && console.log(textStatus);
+                _gssync.options.debug >= 1 && console.log(errorThrown);
                 _gssync.doingSync = false;
             },
             timeout: _gssync.content.timeout
@@ -185,7 +185,8 @@
         var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)^");
         var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
         var url = "http://spreadsheets.google.com/feeds/cells/"+key+"/"+sheetKey+"/private/full";
-        
+        _gssync.options.debug >= 4 && console.log(url);
+
         var content = '<feed xmlns="http://www.w3.org/2005/Atom"' +
             '        xmlns:batch="http://schemas.google.com/gdata/batch"' +
             '        xmlns:gs="http://schemas.google.com/spreadsheets/2006">' +
@@ -216,8 +217,8 @@
             },
             error: function(jqXHR, textStatus, errorThrown)
             {
-                _gssync.content.debug >= 1 && console.log(textStatus);
-                _gssync.content.debug >= 1 && console.log(errorThrown);
+                _gssync.options.debug >= 1 && console.log(textStatus);
+                _gssync.options.debug >= 1 && console.log(errorThrown);
                 _gssync.doingSync = false;
             },
             timeout: _gssync.content.timeout
@@ -225,6 +226,11 @@
 
         return _gssync;
     };
+    /** Initializes the amr meta sheet.... A fancy name for NOT installing the columns
+     * @scope internal
+     * @param key workbook key....
+     * @returns {*}
+     */
     this.initMetaShhet = function (key) {
         var _gssync = this;
         // Do nothing atm
@@ -240,12 +246,12 @@
         // Called recursively through each step..
         if (!_gssync.amrMetaSheetUrl)
         {
-            _gssync.content.debug >= 2 && console.log("Creating meta");
+            _gssync.options.debug >= 2 && console.log("Creating meta");
             return _gssync.createSheet(key, "amrMetaSheetUrl", { title: "AMRMeta" }, _gssync.initMetaShhet);
         }
         if (!_gssync.activeMangaSheetUrl)
         {
-            _gssync.content.debug >= 2 && console.log("Creating active manga");
+            _gssync.options.debug >= 2 && console.log("Creating active manga");
             return _gssync.createSheet(key, "activeMangaSheetUrl", { title: "ActiveManga" }, _gssync.initActiveMangaSheet);
         }
         return _gssync.syncActiveManga(key); // Continue on to where we were.
@@ -259,7 +265,7 @@
         var url = this.option.getGSUrl();
         var keyRegex = new RegExp("key=([A-Za-z0-9_-]+)");
         var key = keyRegex.exec(url)[1];
-        _gssync.content.debug >= 4 && console.log( "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full");
+        _gssync.options.debug >= 4 && console.log( "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full");
         $.ajax({
             url: "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full",
             accepts: {
@@ -269,7 +275,7 @@
             success: function (data, textStatus, jqXHR)
             {
                 var response = $(data);
-                _gssync.content.debug >= 2 && console.log("Got books.");
+                _gssync.options.debug >= 2 && console.log("Got books.");
                 response.find("entry").each(function (index, value)
                 {
                     var each = $(value);
@@ -291,8 +297,8 @@
             },
             error: function(jqXHR, textStatus, errorThrown)
             {
-                _gssync.content.debug >= 1 && console.log(textStatus);
-                _gssync.content.debug >= 1 && console.log(errorThrown);
+                _gssync.options.debug >= 1 && console.log(textStatus);
+                _gssync.options.debug >= 1 && console.log(errorThrown);
                 _gssync.doingSync = false;
             },
             timeout: _gssync.content.timeout
