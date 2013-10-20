@@ -96,7 +96,7 @@
         var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
         var url = "http://spreadsheets.google.com/feeds/list/"+key+"/"+sheetKey+"/private/full";
         _gssync.options.debug >= 4 && console.log(url);
-        var map = $(['mirror', 'name', 'url', 'lastChapterReadUrl', 'lastChapterReadName', 'read', 'update', 'ts', 'display', 'cats'])
+        var map = $(['mirror', 'name', 'url', 'lastChapterReadURL', 'lastChapterReadName', 'read', 'update', 'ts', 'display', 'cats'])
             .map(function () {
                 return '<gsx:' + this.toLowerCase() + '>' + value[this] + '</gsx:' + this.toLowerCase() + '>';
             });
@@ -332,7 +332,7 @@
             _gssync.createCellEntry(url, 1, 1, 0, "mirror", batch),
             _gssync.createCellEntry(url, 1, 2, 0, "name", batch),
             _gssync.createCellEntry(url, 1, 3, 0, "url", batch),
-            _gssync.createCellEntry(url, 1, 4, 0, "lastChapterReadUrl", batch),
+            _gssync.createCellEntry(url, 1, 4, 0, "lastChapterReadURL", batch),
             _gssync.createCellEntry(url, 1, 5, 0, "lastChapterReadName", batch),
             _gssync.createCellEntry(url, 1, 6, 0, "read", batch),
             _gssync.createCellEntry(url, 1, 7, 0, "update", batch),
@@ -394,7 +394,7 @@
             _gssync.createCellEntry(url, 1, 1, 0, "mirror", batch) +
             _gssync.createCellEntry(url, 1, 2, 0, "name", batch) +
             _gssync.createCellEntry(url, 1, 3, 0, "url", batch) +
-            _gssync.createCellEntry(url, 1, 4, 0, "lastChapterReadUrl", batch) +
+            _gssync.createCellEntry(url, 1, 4, 0, "lastChapterReadURL", batch) +
             _gssync.createCellEntry(url, 1, 5, 0, "lastChapterReadName", batch) +
             _gssync.createCellEntry(url, 1, 6, 0, "read", batch) +
             _gssync.createCellEntry(url, 1, 7, 0, "update", batch) +
