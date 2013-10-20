@@ -82,23 +82,68 @@
             this.getWorkbook();
         }
         return _gssync;
-    }
+    };
 
-    /** Fetches the active mangga then syncs
-     * @param key to be helpful.
+    /** Adds an entry to the bottom of the spreadsheet
      * @scope internal
-     * @return reference to object
+     * @param key the work book key
+     * @param value an object with the values to add
      */
-    this.syncActiveManga = function (key) {
+    this.addToGS = function (key, value) {
         var _gssync = this;
-        _gssync.options.debug >= 2 && console.log("Syncing");
-
         var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)$");
         _gssync.options.debug >= 2 && console.log(_gssync.activeMangaSheetUrl);
         var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
+        var url = "http://spreadsheets.google.com/feeds/list/"+key+"/"+sheetKey+"/private/full";
+        _gssync.options.debug >= 4 && console.log(url);
+        var map = $(['mirror', 'name', 'url', 'lastChapterReadUrl', 'lastChapterReadName', 'read', 'update', 'ts', 'display', 'cats'])
+            .map(function () {
+                return '<gsx:' + this + '>' + value[this] + '</gsx:' + this + '>';
+            });
+        _gssync.options.debug >= 4 && console.log(map);
+        var row = '<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended"> ' +
+                map.toArray().join() +
+                '</entry>';
+        _gssync.options.debug >= 4 && console.log(row);
+        $.ajax({
+            url: url,
+            accepts: {
+                xml: "application/xml"
+            },
+            type: "POST",
+            contentType: "application/atom+xml",
+            data: row,
+            success: function (data, textStatus, jqXHR)
+            {
+                return _gssync;
+            },
+            error: function(jqXHR, textStatus, errorThrown)
+            {
+                _gssync.options.debug >= 1 && console.log(textStatus);
+                _gssync.options.debug >= 1 && console.log(errorThrown);
+                _gssync.options.debug >= 4 && console.log(jqXHR);
+            },
+            timeout: _gssync.options.timeout
+        });
+
+        return _gssync;
+    };
+    /** Fetches the active mangga then syncs
+     * @param key workbook key to be helpful.
+     * @param forceWrite another way of saying, don't delete
+     * @scope internal
+     * @return reference to object
+     */
+    this.syncActiveManga = function (key, forceWrite) {
+        var _gssync = this;
+        _gssync.options.debug >= 2 && console.log(_gssync.activeMangaSheetUrl);
+        var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)$");
+        var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
+        var url = "http://spreadsheets.google.com/feeds/list/" + key + "/" + sheetKey + "/private/full";
+        _gssync.options.debug >= 2 && console.log("Syncing: " + url);
 
         $.ajax({
-            url: "http://spreadsheets.google.com/feeds/list/"+key+"/"+sheetKey+"/private/full",
+            url: url,
             accepts: {
                 xml: "application/xml"
             },
@@ -106,6 +151,71 @@
             success: function (data, textStatus, jqXHR)
             {
                 var response = $(data);
+                var actionMap = {};
+                var actionQueue = [];
+                response.find("entry").each(function (index, value)
+                {
+                    var url = $(value).find("url");
+                    actionMap[url] = {
+                        url: $(value).find("url"),
+                        name: $(value).find("name"),
+                        mirror: $(value).find("mirror"),
+                        lastChapterReadUrl: $(value).find("lastChapterReadUrl"),
+                        lastChapterReadName: $(value).find("lastChapterReadName"),
+                        read: $(value).find("read"),
+                        update: $(value).find("update"),
+                        ts: $(value).find("ts"),
+                        display: $(value).find("display"),
+                        cats: $(value).find("cats"),
+                        source: "gs"
+                    };
+                });
+
+                var curCollection = JSON.parse(_gssync.options.collect());
+                _gssync.options.debug >= 4 && console.log(actionMap);
+                _gssync.options.debug >= 4 && console.log(curCollection);
+                $.each(curCollection, function (index, value)
+                {
+                    if (!actionMap[value.url])
+                    {
+                        // OK it doesn't exist in remote
+                        if (forceWrite)
+                        {
+                            // Skip deletion check just write it.
+                            var temp = value;
+                            temp['action'] = 'addToGS';
+                            actionQueue.push(temp);
+                        } else {
+                            // TBC
+                        }
+                    } else {
+                        // Exists in both
+                    }
+                });
+
+                $.each(actionQueue, function (index, value)
+                {
+                    switch (value.action)
+                    {
+                        case 'addToGS':
+                            _gssync.addToGS(key, value);
+                            break;
+                    }
+                });
+
+                // == Got a response ==
+
+                // UPdate synced at time
+//                                _37.syncedAt = ts;
+
+                // If no bookmarks found or invalid write
+//                        _35.options.debug >= 1 && console.log("NO BOOKMARK FOUND > WRITING");
+//                        _35.options.collectThenWrite();
+//                        return _35.options.onError("MISSING BOOKMARK")
+
+                // update synced
+//                _35.synced = _37.syncedAt;
+//                _gssync.doingSync = false;
 
             },
             error: function(jqXHR, textStatus, errorThrown)
@@ -159,7 +269,7 @@
                 {
                     return lamba();
                 }
-                return _gssync.createSheets(key); // Go back to continue the next step
+                return _gssync.createSheets(key, false); // Go back to continue the next step
             },
             error: function(jqXHR, textStatus, errorThrown)
             {
@@ -200,7 +310,7 @@
                         '    <gs:cell row="'+row+'" col="'+col+'" inputValue="'+ escape(data)+'" />\n' +
                         '</entry>\n';
         }
-    }
+    };
 
     /** Initializes the manga sheet.... A fancy name for installing the columns , the let's loop until everythings gone version.
      * @scope internal
@@ -247,7 +357,7 @@
                     {
                         return initActiveMangaSheetRecurs();
                     }
-                    return _gssync.createSheets(key);
+                    return _gssync.createSheets(key, true);
                 },
                 error: function(jqXHR, textStatus, errorThrown)
                 {
@@ -304,7 +414,7 @@
             {
                 var response = $(data);
                 //TODO: check output
-                return _gssync.createSheets(key);
+                return _gssync.createSheets(key, true);
             },
             error: function(jqXHR, textStatus, errorThrown)
             {
@@ -324,31 +434,32 @@
      * @param key workbook key....
      * @returns {*}
      */
-    this.initMetaSheet = function (key) {
+    this.initMetaSheet = function (key, forceWrite) {
         var _gssync = this;
         // Do nothing atm
-        return _gssync.createSheets(key);
+        return _gssync.createSheets(key, forceWrite);
     };
     /** Creates the required sheets
      * @param key to be helpful.
      * @scope internal
      * @return reference to object
      */
-    this.createSheets = function (key) {
+    this.createSheets = function (key, forceWrite) {
         var _gssync = this;
         // Called recursively through each step..
         _gssync.options.debug >= 1 && console.log("create Sheets");
         if (!_gssync.amrMetaSheetUrl)
         {
             _gssync.options.debug >= 2 && console.log("Creating meta");
-            return _gssync.createSheet(key, "amrMetaSheetUrl", { title: "AMRMeta" }, function () { _gssync.initMetaSheet(key); } );
+            return _gssync.createSheet(key, "amrMetaSheetUrl", { title: "AMRMeta" }, function () { _gssync.initMetaSheet(key, forceWrite); } );
         }
         if (!_gssync.activeMangaSheetUrl)
         {
             _gssync.options.debug >= 2 && console.log("Creating active manga");
             return _gssync.createSheet(key, "activeMangaSheetUrl", { title: "ActiveManga" }, function () {  _gssync.initActiveMangaSheet(key); } );
+            // This doesn't call createSheets() again - it goes straight on to populate data.
         }
-        return _gssync.syncActiveManga(key); // Continue on to where we were.
+        return _gssync.syncActiveManga(key, forceWrite); // Continue on to where we were.
     };
     /** Fetches workbook so we can find the sheets, if any are missing creates them. Passes flow onto "syncActiveManga"
      * @scope internal
@@ -385,9 +496,9 @@
                 });
                 if (!_gssync.activeMangaSheetUrl || !_gssync.amrMetaSheetUrl)
                 {
-                    return _gssync.createSheets(key);
+                    return _gssync.createSheets(key, false);
                 }
-                return _gssync.syncActiveManga(key);
+                return _gssync.syncActiveManga(key, false);
             },
             error: function(jqXHR, textStatus, errorThrown)
             {
@@ -397,119 +508,8 @@
             },
             timeout: _gssync.options.timeout
         });
-
-        // == Got a response ==
-
-        // UPdate synced at time
-//                                _37.syncedAt = ts;
-
-        // If no bookmarks found or invalid write
-//                        _35.options.debug >= 1 && console.log("NO BOOKMARK FOUND > WRITING");
-//                        _35.options.onWrite();
-//                        return _35.options.onError("MISSING BOOKMARK")
-
-        // update synced
-//                _35.synced = _37.syncedAt;
     }
-    /** Core logic deciding what should be done, and adding meta data to the objects being stored.
-     * @scope internal
-     * @param _syncData The object that contains an array of items to sync. This is wrapped by bsync
-     * @returns self or undef if error
-     */
-    this.process = function (_syncData) {
-        var _json, _gssync = this;
-        if (!(_json = this.getJSON(_syncData))) {
-            _gssync.options.debug >= 1 && console.log(" NO CONTENT FOUND > WRITING");
-            this.options.onWrite();
-            //return this.options.onError("NO CONTENT")
-            console.log("BSYNC ERROR : "+" NO CONTENT");
-            return;
-        }
-        this.content = _json;
-        var _previousSync = this.syncedAt;
-        this.syncedAt = _syncData.syncedAt;
-        if (0) {
-            if (this.shouldRead()) {
-                this.syncedAtPrevious = _previousSync;
-                this.markTimestamp();
-                this.bookmark = _syncData;
-                this.options.onRead(_json, _syncData)
-            } else {
-                if (this.shouldWrite()) {
-                    this.options.onWrite(_json, _syncData)
-                } else {
-                    _gssync.options.debug >= 1 && console.log(" NOTHING TO DO :) ")
-                }
-            }
-        } else {
-            if (this.shouldWrite()) {
-                _gssync.options.debug >= 1 && console.log("\nAbout to write");
-                this.options.onWrite(_json, _syncData)
-            } else {
-                if (this.shouldRead()) {
-                    _gssync.options.debug >= 1 && console.log("\nAbout to read");
-                    this.syncedAtPrevious = this.syncedAt;
-                    this.markTimestamp();
-                    this.bookmark = _syncData;
-                    this.options.onRead(_json, _syncData)
-                } else {
-                    _gssync.options.debug >= 1 && console.log(" NOTHING TO DO :) ")
-                }
-            }
-        }
-        return this
-    }
-    /** Determines if the local data should be updated from sync source. Called from Process()
-     * @scope internal
-     * @returns boolean; true if content is defined, and is newer than local
-     */
-    this.shouldRead = function () {
-        if (this.options.debug) {
-            console.log("\n\nChecking shouldRead()");
-            console.log("this.syncedAtPrevious: " + this.syncedAtPrevious);
-            console.log("this.syncedAt: " + this.syncedAt);
-            console.log("his.options.getUpdate(): " + this.options.getUpdate())
-        }
-        return this.options.getUpdate() === undefined || (this.content && this.syncedAt > this.options.getUpdate())
-    }
-    /** Determines if the local data should be written to sync source. Called from Process()
-     * @scope internal
-     * @returns boolean; true if content is defined, and is newer than sync source
-     */
-    this.shouldWrite = function () {
-        if (this.options.debug) {
-            console.log("\n\nChecking shouldWrite()");
-            console.log("this.syncedAtPrevious: " + this.syncedAtPrevious);
-            console.log("this.syncedAt: " + this.syncedAt);
-            console.log("his.options.getUpdate(); " + this.options.getUpdate())
-        }
-        return !this.content || (this.options.getUpdate() && (this.options.getUpdate() > this.syncedAt))
-    }
-    /** Called by inherited object in background.js in onWrite(). Deletes older bookmark, creates new one with new
-     * content
-     * @scope Protected
-     * @param _storeObj Object to write to bookmark.
-     * @returns self or false on error
-     */
-    this.write = function (_storeObj) {
-        var _gssync = this;
-        if (this.content) {
-            if (JSON.stringify(this.content) === JSON.stringify(_storeObj)) {
-                _gssync.options.debug >= 1 && console.log("SORRY SAME CONTENT / BAILING OUT");
-                return false
-            }
-        }
-        this.syncedAtPrevious = this.syncedAt;
-        this.syncedAt = this.options.getUpdate() || new Date().getTime();
 
-
-        /// SYNC CODE HERE
-
-
-        _gssync.options.debug >= 1 && console.log("\nWROTE > " + JSON.stringify(_storeObj));
-        this.markTimestamp(true);
-        return this
-    }
     /** Starts timer, and if bookmark hook hasn't been registered. Register it. Called by background.js on param save,
      * init(), and locally by traverse(), and attach()
      * @scope public
@@ -552,37 +552,6 @@
                 }
             }
         return this
-    }
-    /** Called by Process() and write(). Updates timestamps in data structure depending on source
-     * @scope internal
-     * @param _writeOp boolean, true if called from write()
-     * @returns self
-     */
-    this.markTimestamp = function (_writeOp) {
-        this["synced" + (_writeOp ? "To" : "From")] = new Date().getTime();
-        return this
-    }
-    /** Converts a bookmarked / js-idle wrapped json structure back into something that usable. Called by process() Also
-     * tests for validility
-     * @scope internal
-     * @param _55
-     * @returns JSON object, or an empty string if a parse error occurred
-     */
-    this.getJSON = function (_55) {
-        var _56 = _55.url,
-            _result = "";
-        _56 = _56.replace(/^.*?void\('(.*?)'\);void.*?$/, "$1");
-        //_56 = _56.replace(new RegExp(this.options.newLine, "g"), String.fromCharCode(10));
-        //console.log("JSON to parse : " + _56);
-        if (_56) {
-                try {
-                    _result = JSON.parse(_56)
-                } catch (ex) {
-                    //console.log("Erreur de parsing JSON -->''");
-                    _result = ""
-                }
-            }
-        return _result;
     }
 
     this.initialize(_opt);

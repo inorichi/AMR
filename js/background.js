@@ -101,7 +101,7 @@ var gssync_obj = new GsSync({
      * @param json Jsonified list of manga. see https://gist.github.com/arran4/4474b16cb7529804a5f8
      * @param bookmark not used
      */
-    onRead : function (json, bookmark) {
+    onRead : function (json) {
 
         return; // Until write works going to disable this part.
 
@@ -164,14 +164,11 @@ var gssync_obj = new GsSync({
     /** Retrieves details from instance for sync write process.. Passes them back via write() "callback."
      * @scope overridden "virtual" protected
      */
-    onWrite : function () {
+    collect: function () {
       console.log('Writing current configuration to synchronise');
       var params = getParameters();
-      this.write({
-        'mangas' : getJSONListToSync(),
-        'updated' : params.updated
-      });
-      refreshSync();
+      return getJSONListToSync();
+//      refreshSync();
     }
 });
 // bsync_obj maybe?
