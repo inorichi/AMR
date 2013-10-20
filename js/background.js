@@ -72,7 +72,97 @@ Date.prototype.getWeek = function (dowOffset) {
   }
   return weeknum;
 };
-// Here we shouldn't be using this...
+// Here we shouldn't be using this... - I suggest making this an abstract object so ppl can choose sync methods without
+// causing much rewriting each time and pass in or set dependencies.
+var gssync_obj = new GsSync({
+    /*
+     * Exists for scope insertation............ Yes......
+     */
+    /** Returns the last updated time for parent
+     * @scope overridden "virtual" protected
+     * @returns Last updated time in unix time
+     */
+    getUpdate : function () {
+      //console.log('GET UPDATE');
+      var params = getParameters();
+      return params.updated;
+    },
+
+    /** Does the hard work of updating the manga list to match sync source.
+     * @scope overridden "virtual" protected
+     * @param json
+     * @param bookmark not used
+     */
+    onRead : function (json, bookmark) {
+      console.log('Reading incoming synchronisation');
+
+      if (!(json == undefined || json == null || json == "null")) {
+        console.log(' - Updating incoming entries');
+        // var lstTmp = $A(eval('(' + json.mangas + ')')); --> remove prototype usage
+        lstTmp = JSON.parse(json.mangas);
+        for (var i = 0; i < lstTmp.length; i++) {
+          var tmpManga = new MangaElt(lstTmp[i]);
+          console.log("\t - Reading manga entry : " + tmpManga.name + " in mirror : " + tmpManga.mirror);
+          var mangaExist = isInMangaList(tmpManga.url);
+          if (mangaExist == null) {
+            console.log("\t  --> Manga not found in current list, adding manga... ");
+            if (!isMirrorActivated(tmpManga.mirror)) {
+              activateMirror(tmpManga.mirror);
+            }
+            var last = mangaList.length;
+            mangaList[last] = tmpManga;
+            mangaList[last].refreshLast();
+            try {
+              _gaq.push(['_trackEvent', 'AddManga', tmpManga.mirror, tmpManga.name]);
+              //pageTracker._trackEvent('AddManga', newManga.name);
+            } catch (e) {}
+          } else {
+            //Verify chapter last
+            console.log("\t  --> Manga found in current list, verify last chapter read. incoming : " + tmpManga.lastChapterReadURL + "; current : " + mangaExist.lastChapterReadURL);
+            mangaExist.consult(tmpManga);
+            saveList();
+          }
+        }
+        console.log(' - Deleting mangas not in incoming list');
+        var deleteAr = [];
+        for (var i = 0; i < mangaList.length; i++) {
+          var found = false;
+          for (var j = 0; j < lstTmp.length; j++) {
+            var tmpManga = new MangaElt(lstTmp[j]);
+            if (mangaList[i].url == tmpManga.url) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            console.log("\t - Deleting manga entry in current list : " + mangaList[i].name + " in mirror : " + mangaList[i].mirror);
+            deleteAr[deleteAr.length] = i;
+          }
+        }
+        for (var i = deleteAr.length - 1; i >= 0; i--) {
+          mangaList.remove(deleteAr[i], deleteAr[i]);
+        }
+      }
+
+      saveList();
+      refreshUpdateWith(this.syncedAt);
+      refreshSync();
+    },
+
+    /** Retrieves details from instance for sync write process.. Passes them back via write() "callback."
+     * @scope overridden "virtual" protected
+     */
+    onWrite : function () {
+      console.log('Writing current configuration to synchronise');
+      var params = getParameters();
+      this.write({
+        'mangas' : getJSONListToSync(),
+        'updated' : params.updated
+      });
+      refreshSync();
+    }
+});
+// bsync_obj maybe?
 var sync = new BSync({
     getUpdate : function () {
       //console.log('GET UPDATE');
