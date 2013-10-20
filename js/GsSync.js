@@ -98,7 +98,7 @@
         _gssync.options.debug >= 4 && console.log(url);
         var map = $(['mirror', 'name', 'url', 'lastChapterReadUrl', 'lastChapterReadName', 'read', 'update', 'ts', 'display', 'cats'])
             .map(function () {
-                return '<gsx:' + this + '>' + value[this] + '</gsx:' + this + '>';
+                return '<gsx:' + this.toLowerCase() + '>' + value[this] + '</gsx:' + this.toLowerCase() + '>';
             });
         _gssync.options.debug >= 4 && console.log(map);
         var row = '<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended"> ' +
@@ -186,10 +186,11 @@
                             temp['action'] = 'addToGS';
                             actionQueue.push(temp);
                         } else {
-                            // TBC
+                            //TODO: TBC
                         }
                     } else {
                         // Exists in both
+                        //TODO:
                     }
                 });
 
@@ -203,7 +204,7 @@
                     }
                 });
 
-                // == Got a response ==
+                //TODO: == Got a response ==
 
                 // UPdate synced at time
 //                                _37.syncedAt = ts;
@@ -215,7 +216,7 @@
 
                 // update synced
 //                _35.synced = _37.syncedAt;
-//                _gssync.doingSync = false;
+                _gssync.doingSync = false;
 
             },
             error: function(jqXHR, textStatus, errorThrown)
