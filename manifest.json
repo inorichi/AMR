@@ -24,6 +24,7 @@
         "js/MangaElt.js",
         "js/mgEntry.js",
         "js/BSync.js",
+        "js/GsSync.js",
         "js/analytics.js",
         "js/personalstat.js",
         "js/wssql.js",

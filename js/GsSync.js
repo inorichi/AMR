@@ -62,6 +62,7 @@
      */
     this.doSync = function ()
     {
+        console.log("GsSync Tick");
         // Check to ensure ((new Date().getTime() - this.options.getUpdate()) < this.options.idleInterval
 //        if (!_34 && this.options.testNetwork && !this.folder) {
 //            return this.testNetwork()
@@ -244,19 +245,19 @@
      */
     this.getJSON = function (_55) {
         var _56 = _55.url,
-            _57, _58 = "";
+            _result = "";
         _56 = _56.replace(/^.*?void\('(.*?)'\);void.*?$/, "$1");
         //_56 = _56.replace(new RegExp(this.options.newLine, "g"), String.fromCharCode(10));
         //console.log("JSON to parse : " + _56);
         if (_56) {
                 try {
-                    _58 = JSON.parse(_56)
+                    _result = JSON.parse(_56)
                 } catch (ex) {
                     //console.log("Erreur de parsing JSON -->''");
-                    _58 = ""
+                    _result = ""
                 }
             }
-        return _58
+        return _result;
     }
 
     this.initialize(_opt);

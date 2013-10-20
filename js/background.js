@@ -416,7 +416,7 @@ function init() {
         }
         if (pars.gssync == 1) {
             console.log("google spreadsheet synchronization started");
-            gssync.start();
+            gssync_obj.start();
         }
         if (!localStorage["lastChaptersUpdate"]) {
             refreshAllLasts();
