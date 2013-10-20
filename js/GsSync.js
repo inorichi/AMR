@@ -10,6 +10,7 @@
      * */
     this.initialize = function (_19) {
         this.options.debug = 4; // -1 nothing ever, 0 error, 1 warn 2 info 4 trace
+        this.options.instantSync = true; // debug only
         this.options.idleInterval = 30000;
         this.options.interval = 300000;
         this.options.networkTimeout = 3000;
@@ -72,6 +73,7 @@
 //        }
         if (_gssync.doingSync)
         {
+            _gssync.options.debug >= 0 && console.log("Skipping sync already one in progress.");
             return _gssync;
         }
         _gssync.doingSync = true;
@@ -91,7 +93,8 @@
         var _gssync = this;
         _gssync.options.debug >= 2 && console.log("Syncing");
 
-        var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)^");
+        var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)$");
+        _gssync.options.debug >= 2 && console.log(_gssync.activeMangaSheetUrl);
         var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
 
         $.ajax({
@@ -103,6 +106,7 @@
             success: function (data, textStatus, jqXHR)
             {
                 var response = $(data);
+
             },
             error: function(jqXHR, textStatus, errorThrown)
             {
@@ -110,7 +114,7 @@
                 _gssync.options.debug >= 1 && console.log(errorThrown);
                 _gssync.doingSync = false;
             },
-            timeout: _gssync.content.timeout
+            timeout: _gssync.options.timeout
         });
 
 
@@ -123,20 +127,24 @@
      * @scope internal
      * @return reference to object
      */
-    this.createSheet = function (key, storeKey, content, lamba) {
+    this.createSheet = function (key, storeKey, values, lamba) {
         var _gssync = this;
+        var url = "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full";
+        var content = '<entry xmlns="http://www.w3.org/2005/Atom" '+
+            'xmlns:gs="http://schemas.google.com/spreadsheets/2006"> '+
+            '<title>'+values['title']+'</title> '+
+            '<gs:rowCount>50</gs:rowCount> '+
+            '<gs:colCount>10</gs:colCount> '+
+            '</entry>';
+        _gssync.options.debug >= 4 && console.log(url);
+        _gssync.options.debug >= 4 && console.log(content);
         $.ajax({
-            url: "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full",
+            url: url,
             accepts: {
                 xml: "application/xml"
             },
-            content: '<entry xmlns="http://www.w3.org/2005/Atom" '+
-                'xmlns:gs="http://schemas.google.com/spreadsheets/2006"> '+
-                '<title>'+content['title']+'</title> '+
-                '<gs:rowCount>50</gs:rowCount> '+
-                '<gs:colCount>10</gs:colCount> '+
-                '</entry> ',
-            contentType: "application/xml",
+            data: content,
+            contentType: "application/atom+xml",
             type: "POST",
             success: function (data, textStatus, jqXHR)
             {
@@ -149,7 +157,7 @@
                 });
                 if (lamba)
                 {
-                    return lamba(key);
+                    return lamba();
                 }
                 return _gssync.createSheets(key); // Go back to continue the next step
             },
@@ -157,71 +165,156 @@
             {
                 _gssync.options.debug >= 1 && console.log(textStatus);
                 _gssync.options.debug >= 1 && console.log(errorThrown);
+                _gssync.options.debug >= 4 && console.log(jqXHR);
                 _gssync.doingSync = false;
             },
-            timeout: _gssync.content.timeout
+            timeout: _gssync.options.timeout
         });
         return _gssync;
     };
 
-    this.createCellEntry = function (url, row, col, data) {
-        return 		'        <entry>' +
-            '            <batch:id>'+ String.fromCharCode('a'.charCodeAt(0) + 1) +col+'</batch:id>' +
-            '            <batch:operation type="update"/>' +
-            '            <id>https://spreadsheets.google.com/feeds/cells/key/worksheetId/private/full/R'+row+'C'+col+'</id>' +
-            '            <link rel="edit" type="application/atom+xml"' +
-            '        href="https://spreadsheets.google.com/feeds/cells/key/worksheetId/private/full/R'+row+'C'+col+'/version"/>' +
-            '            <gs:cell row="'+row+'" col="'+col+'" inputValue="'+ escape(data)+'"/>' +
-            '        </entry>';
+    /** Creates a update cell XML query..
+     * @scope internal
+     * @param url the URL for the worksheet
+     * @param row the row to update from 1 onwards
+     * @param col the column to update from 1 onwards
+     * @param version the version - not used atm
+     * @param data The data to update the cell with
+     * @param batch boolean if this is part of a batch request. put false in batch in V3 of spreedsheet API has been broken since 2011.
+     * @returns Formatted string
+     */
+    this.createCellEntry = function (url, row, col, version, data, batch) {
+        if (batch)
+        {
+            return 		'        <entry>\n' +
+                        '            <batch:id>'+ String.fromCharCode('a'.charCodeAt(0) + (row-1)) +col+'</batch:id>\n' +
+                        '            <batch:operation type="update" />\n' +
+                        '            <id>'+url+'/R'+row+'C'+col+'</id>\n' +
+                        '            <link rel="edit" type="application/atom+xml" href="'+url+'/R'+row+'C'+col+'/'+version+'" />\n' +
+                        '            <gs:cell row="'+row+'" col="'+col+'" inputValue="'+ escape(data)+'" />\n' +
+                        '        </entry>\n';
+        } else {
+            return 		'<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006">\n' +
+                        '    <id>'+url+'/R'+row+'C'+col+'</id>\n' +
+                        '    <link rel="edit" type="application/atom+xml" href="'+url+'/R'+row+'C'+col+'" />\n' +
+                        '    <gs:cell row="'+row+'" col="'+col+'" inputValue="'+ escape(data)+'" />\n' +
+                        '</entry>\n';
+        }
     }
 
-    /** Initializes the manga sheet.... A fancy name for installing the columns
+    /** Initializes the manga sheet.... A fancy name for installing the columns , the let's loop until everythings gone version.
      * @scope internal
      * @param key workbook key....
      * @returns {*}
      */
     this.initActiveMangaSheet = function (key) {
         var _gssync = this;
-        var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)^");
+        var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)$");
+        _gssync.options.debug >= 2 && console.log(_gssync.activeMangaSheetUrl);
         var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
+
         var url = "http://spreadsheets.google.com/feeds/cells/"+key+"/"+sheetKey+"/private/full";
         _gssync.options.debug >= 4 && console.log(url);
 
-        var content = '<feed xmlns="http://www.w3.org/2005/Atom"' +
-            '        xmlns:batch="http://schemas.google.com/gdata/batch"' +
-            '        xmlns:gs="http://schemas.google.com/spreadsheets/2006">' +
-            '            <id>'+url+'</id>' +
-            _gssync.createCellEntry(url, 1, 1, "mirror") +
-            _gssync.createCellEntry(url, 1, 2, "name") +
-            _gssync.createCellEntry(url, 1, 3, "url") +
-            _gssync.createCellEntry(url, 1, 4, "lastChapterReadUrl") +
-            _gssync.createCellEntry(url, 1, 5, "lastChapterReadName") +
-            _gssync.createCellEntry(url, 1, 6, "read") +
-            _gssync.createCellEntry(url, 1, 7, "update") +
-            _gssync.createCellEntry(url, 1, 8, "ts") +
-            _gssync.createCellEntry(url, 1, 9, "display") +
-            _gssync.createCellEntry(url, 1, 10, "cats") +
-		    '        </feed>';
-        
+        var batch = false;
+        var queue = [
+            _gssync.createCellEntry(url, 1, 1, 0, "mirror", batch),
+            _gssync.createCellEntry(url, 1, 2, 0, "name", batch),
+            _gssync.createCellEntry(url, 1, 3, 0, "url", batch),
+            _gssync.createCellEntry(url, 1, 4, 0, "lastChapterReadUrl", batch),
+            _gssync.createCellEntry(url, 1, 5, 0, "lastChapterReadName", batch),
+            _gssync.createCellEntry(url, 1, 6, 0, "read", batch),
+            _gssync.createCellEntry(url, 1, 7, 0, "update", batch),
+            _gssync.createCellEntry(url, 1, 8, 0, "ts", batch),
+            _gssync.createCellEntry(url, 1, 9, 0, "display", batch),
+            _gssync.createCellEntry(url, 1, 10, 0, "cats", batch) ];
+
+
+        var initActiveMangaSheetRecurs = function ()
+        {
+            _gssync.options.debug >= 2 && console.log("Recurs");
+            $.ajax({
+                url: url,
+                accepts: {
+                    xml: "application/xml"
+                },
+                type: "POST",
+                contentType: "application/atom+xml",
+                data: queue.pop(),
+                success: function (data, textStatus, jqXHR)
+                {
+                    if (queue.length > 0)
+                    {
+                        return initActiveMangaSheetRecurs();
+                    }
+                    return _gssync.createSheets(key);
+                },
+                error: function(jqXHR, textStatus, errorThrown)
+                {
+                    _gssync.options.debug >= 1 && console.log(textStatus);
+                    _gssync.options.debug >= 1 && console.log(errorThrown);
+                    _gssync.options.debug >= 4 && console.log(jqXHR);
+                    _gssync.options.debug >= 4 && console.log(content);
+                    _gssync.doingSync = false;
+                },
+                timeout: _gssync.options.timeout
+            });
+        };
+        initActiveMangaSheetRecurs();
+        return _gssync;
+    };
+    /** Initializes the manga sheet.... A fancy name for installing the columns - Batch version.. Broken.
+     * @scope internal
+     * @param key workbook key....
+     * @returns {*}
+     */
+    this.initActiveMangaSheetBatch = function (key) {
+        var _gssync = this;
+        var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)$");
+        _gssync.options.debug >= 2 && console.log(_gssync.activeMangaSheetUrl);
+        var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
+
+        var url = "http://spreadsheets.google.com/feeds/cells/"+key+"/"+sheetKey+"/private/full";
+        _gssync.options.debug >= 4 && console.log(url);
+
+        var batch = true;
+        var content = '<feed xmlns="http://www.w3.org/2005/Atom" xmlns:batch="http://schemas.google.com/gdata/batch" xmlns:gs="http://schemas.google.com/spreadsheets/2006">\n' +
+            '            <id>'+url+'</id>\n' +
+            _gssync.createCellEntry(url, 1, 1, 0, "mirror", batch) +
+            _gssync.createCellEntry(url, 1, 2, 0, "name", batch) +
+            _gssync.createCellEntry(url, 1, 3, 0, "url", batch) +
+            _gssync.createCellEntry(url, 1, 4, 0, "lastChapterReadUrl", batch) +
+            _gssync.createCellEntry(url, 1, 5, 0, "lastChapterReadName", batch) +
+            _gssync.createCellEntry(url, 1, 6, 0, "read", batch) +
+            _gssync.createCellEntry(url, 1, 7, 0, "update", batch) +
+            _gssync.createCellEntry(url, 1, 8, 0, "ts", batch) +
+            _gssync.createCellEntry(url, 1, 9, 0, "display", batch) +
+            _gssync.createCellEntry(url, 1, 10, 0, "cats", batch) +
+		    '</feed>';
+
         $.ajax({
             url: url + "/batch",
             accepts: {
                 xml: "application/xml"
             },
             type: "PUT",
-            content: content,
+            contentType: "application/atom+xml",
+            data: content,
             success: function (data, textStatus, jqXHR)
             {
                 var response = $(data);
+                //TODO: check output
                 return _gssync.createSheets(key);
             },
             error: function(jqXHR, textStatus, errorThrown)
             {
                 _gssync.options.debug >= 1 && console.log(textStatus);
                 _gssync.options.debug >= 1 && console.log(errorThrown);
+                _gssync.options.debug >= 4 && console.log(jqXHR);
+                _gssync.options.debug >= 4 && console.log(content);
                 _gssync.doingSync = false;
             },
-            timeout: _gssync.content.timeout
+            timeout: _gssync.options.timeout
         });
 
         return _gssync;
@@ -231,7 +324,7 @@
      * @param key workbook key....
      * @returns {*}
      */
-    this.initMetaShhet = function (key) {
+    this.initMetaSheet = function (key) {
         var _gssync = this;
         // Do nothing atm
         return _gssync.createSheets(key);
@@ -244,15 +337,16 @@
     this.createSheets = function (key) {
         var _gssync = this;
         // Called recursively through each step..
+        _gssync.options.debug >= 1 && console.log("create Sheets");
         if (!_gssync.amrMetaSheetUrl)
         {
             _gssync.options.debug >= 2 && console.log("Creating meta");
-            return _gssync.createSheet(key, "amrMetaSheetUrl", { title: "AMRMeta" }, _gssync.initMetaShhet);
+            return _gssync.createSheet(key, "amrMetaSheetUrl", { title: "AMRMeta" }, function () { _gssync.initMetaSheet(key); } );
         }
         if (!_gssync.activeMangaSheetUrl)
         {
             _gssync.options.debug >= 2 && console.log("Creating active manga");
-            return _gssync.createSheet(key, "activeMangaSheetUrl", { title: "ActiveManga" }, _gssync.initActiveMangaSheet);
+            return _gssync.createSheet(key, "activeMangaSheetUrl", { title: "ActiveManga" }, function () {  _gssync.initActiveMangaSheet(key); } );
         }
         return _gssync.syncActiveManga(key); // Continue on to where we were.
     };
@@ -262,7 +356,7 @@
      */
     this.getWorkbook = function () {
         var _gssync = this;
-        var url = this.option.getGSUrl();
+        var url = this.options.getGSUrl();
         var keyRegex = new RegExp("key=([A-Za-z0-9_-]+)");
         var key = keyRegex.exec(url)[1];
         _gssync.options.debug >= 4 && console.log( "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full");
@@ -289,9 +383,9 @@
                         _gssync.amrMetaSheetUrl = each.find("id").text();
                     }
                 });
-                if (!_gssync.activeMangaSheetUrl)
+                if (!_gssync.activeMangaSheetUrl || !_gssync.amrMetaSheetUrl)
                 {
-                    _gssync.createSheets(key);
+                    return _gssync.createSheets(key);
                 }
                 return _gssync.syncActiveManga(key);
             },
@@ -301,7 +395,7 @@
                 _gssync.options.debug >= 1 && console.log(errorThrown);
                 _gssync.doingSync = false;
             },
-            timeout: _gssync.content.timeout
+            timeout: _gssync.options.timeout
         });
 
         // == Got a response ==
@@ -424,6 +518,10 @@
     this.start = function () {
         this.setupTimer();
         this.isRunning = true;
+        if (this.options.instantSync)
+        {
+            this.doSync();
+        }
         return this
     }
     /** Starts timer, and if bookmark hook hasn't been registered. Register it. Called by background.js on param save / change,
