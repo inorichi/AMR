@@ -75,9 +75,8 @@ Date.prototype.getWeek = function (dowOffset) {
 // Here we shouldn't be using this... - I suggest making this an abstract object so ppl can choose sync methods without
 // causing much rewriting each time and pass in or set dependencies.
 var gssync_obj = new GsSync({
-    /*
-     * Exists for scope insertation............ Yes......
-     */
+    /**^ Exists for scope insertation............ Yes...... */
+
     /** Returns the last updated time for parent
      * @scope overridden "virtual" protected
      * @returns Last updated time in unix time
@@ -86,6 +85,15 @@ var gssync_obj = new GsSync({
       //console.log('GET UPDATE');
       var params = getParameters();
       return params.updated;
+    },
+
+    /**
+     * Inserts the spreadsheet URL into context
+     * @returns {*}
+     */
+    getGSUrl : function () {
+        var params = getParameters();
+        return params.gssyncUrl;
     },
 
     /** Does the hard work of updating the manga list to match sync source.
