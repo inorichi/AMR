@@ -90,10 +90,14 @@ var gssync_obj = new GsSync({
 
     /** Does the hard work of updating the manga list to match sync source.
      * @scope overridden "virtual" protected
-     * @param json
+     * @param json Jsonified list of manga. see https://gist.github.com/arran4/4474b16cb7529804a5f8
      * @param bookmark not used
      */
     onRead : function (json, bookmark) {
+
+        return; // Until write works going to disable this part.
+
+
       console.log('Reading incoming synchronisation');
 
       if (!(json == undefined || json == null || json == "null")) {
@@ -399,8 +403,12 @@ function init() {
         }
         saveList();
         if (pars.sync == 1) {
-            console.log("synchronization started");
+            console.log("bookmark synchronization started");
             sync.start();
+        }
+        if (pars.gssync == 1) {
+            console.log("google spreadsheet synchronization started");
+            gssync.start();
         }
         if (!localStorage["lastChaptersUpdate"]) {
             refreshAllLasts();
@@ -905,17 +913,34 @@ chrome.extension.onRequest.addListener(function (request, sender, sendResponse) 
         obj.syncAMR = ancParams.syncAMR;
         if (ancParams.sync != obj.sync) {
             if (obj.sync == 1) {
-                console.log("synchronization started (parameter update)");
+                console.log("bookmark synchronization started (parameter update)");
                 sync.start();
                 try {
                     _gaq.push(['_trackEvent', 'Sync', 'activate']);
                 } catch (e) {}
 
             } else {
-                console.log("synchronization stopped (parameter update)");
+                console.log("bookmark synchronization stopped (parameter update)");
                 sync.stop();
                 try {
                     _gaq.push(['_trackEvent', 'Sync', 'desactivate']);
+                } catch (e) {}
+
+            }
+        }
+        if (ancParams.gssync != obj.gssync) {
+            if (obj.gssync == 1) {
+                console.log("google spreadsheet synchronization started (parameter update)");
+                gssync_obj.start();
+                try {
+                    _gaq.push(['_trackEvent', 'GsSync', 'activate']);
+                } catch (e) {}
+
+            } else {
+                console.log("google spreadsheet synchronization stopped (parameter update)");
+                gssync_obj.stop();
+                try {
+                    _gaq.push(['_trackEvent', 'GsSync', 'deactivate']);
                 } catch (e) {}
 
             }

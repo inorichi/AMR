@@ -1,5 +1,4 @@
-﻿// This code will be changed for the storage.sync call of Chrome.
-function GsSync (_opt) {
+﻿function GsSync (_opt) {
 
     this.options = {};
 
@@ -12,7 +11,8 @@ function GsSync (_opt) {
         return this
     }
 
-    /** Seems to create a hook to bookmark changes. Returned value is returned by start() if not "already attached"
+    /** Seems to create a hook to bookmark changes. Returned value is returned by start() if not "already attached", also
+     * sets consts
      * @scope Internal
      * @returns Self with modified options OR Self with setup bookmark "create/remove" listeners
      */
@@ -95,7 +95,8 @@ function GsSync (_opt) {
             };
         return this
     }
-    /** Part of the traverse function. Recursively calls traverse.
+    /** Part of the traverse function. Recursively calls traverse. Responsible for getting the BSync folder or creating
+     * it
      * @scope internal
      * @returns Returns a this.folder, or false.
      */
