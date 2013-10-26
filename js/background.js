@@ -101,7 +101,7 @@ var gssync_obj = new GsSync({
      * @param mangaURL manga URL.
      */
     deleteManga: function (mangaUrl) {
-        return killManga({ url:mangaUrl }, function() {}, true);
+        return killManga({ url:mangaUrl }, function(x) {return x;}, true);
     },
 
     /** Read manga; this either updates the read chapter OR adds a manga.
@@ -109,7 +109,8 @@ var gssync_obj = new GsSync({
      * @param value the json object for a manga.
      */
     readManga: function (value) {
-        return readManga(value, function() {}, true);
+        value.update = 1;
+        return readManga(value, function(x) {return x;}, true);
         //return
 //        updateManga("", value);
 //        saveList();
