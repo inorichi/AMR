@@ -110,6 +110,9 @@ var gssync_obj = new GsSync({
      */
     readManga: function (value) {
         return readManga(value, function() {}, true);
+        //return
+//        updateManga("", value);
+//        saveList();
     },
 
     /** Finalizes the sync
@@ -2046,6 +2049,33 @@ function deleteMangas(mangasToDel) {
         mangaList.remove(deleteAr[i], deleteAr[i]);
     }
 }
+function updateManga(textOut, tmpManga) {
+    textOut += "\t - " + translate("background_impexp_read", [tmpManga.name, tmpManga.mirror]) + "\n";
+    var mangaExist = isInMangaList(tmpManga.url);
+    if (mangaExist == null) {
+        textOut += "\t  --> " + translate("background_impexp_mg_notfound") + "\n";
+        if (!isMirrorActivated(tmpManga.mirror)) {
+            activateMirror(tmpManga.mirror);
+        }
+        var last = mangaList.length;
+        mangaList[last] = tmpManga;
+        try {
+            _gaq.push(['_trackEvent', 'AddManga', tmpManga.mirror, tmpManga.name]);
+        } catch (e) {
+        }
+
+    } else {
+        textOut += "\t  --> " + translate("background_impexp_mg_syncchap", [tmpManga.lastChapterReadURL, mangaExist.lastChapterReadURL]) + "\n";
+        mangaExist.consult(tmpManga);
+        try {
+            _gaq.push(['_trackEvent', 'ReadManga', tmpManga.mirror, tmpManga.name]);
+            _gaq.push(['_trackEvent', 'ReadMangaChapter', tmpManga.name, tmpManga.lastChapterReadName]);
+        } catch (e) {
+        }
+
+    }
+    return {textOut: textOut, mangaExist: mangaExist, last: last};
+}
 function importMangas(mangas, merge) {
     var textOut = "";
     if (!merge) {
@@ -2067,28 +2097,10 @@ function importMangas(mangas, merge) {
     var lstTmp = mangas;
     for (var i = 0; i < lstTmp.length; i++) {
         var tmpManga = new MangaElt(lstTmp[i]);
-        textOut += "\t - " + translate("background_impexp_read", [tmpManga.name, tmpManga.mirror]) + "\n";
-        var mangaExist = isInMangaList(tmpManga.url);
-        if (mangaExist == null) {
-            textOut += "\t  --> " + translate("background_impexp_mg_notfound") + "\n";
-            if (!isMirrorActivated(tmpManga.mirror)) {
-                activateMirror(tmpManga.mirror);
-            }
-            var last = mangaList.length;
-            mangaList[last] = tmpManga;
-            try {
-                _gaq.push(['_trackEvent', 'AddManga', tmpManga.mirror, tmpManga.name]);
-            } catch (e) {}
-
-        } else {
-            textOut += "\t  --> " + translate("background_impexp_mg_syncchap", [tmpManga.lastChapterReadURL, mangaExist.lastChapterReadURL]) + "\n";
-            mangaExist.consult(tmpManga);
-            try {
-                _gaq.push(['_trackEvent', 'ReadManga', tmpManga.mirror, tmpManga.name]);
-                _gaq.push(['_trackEvent', 'ReadMangaChapter', tmpManga.name, tmpManga.lastChapterReadName]);
-            } catch (e) {}
-
-        }
+        var __ret = updateManga(textOut, tmpManga);
+        textOut = __ret.textOut;
+        var mangaExist = __ret.mangaExist;
+        var last = __ret.last;
     }
     refreshAllLasts();
     return textOut;

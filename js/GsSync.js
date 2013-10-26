@@ -134,37 +134,63 @@
     /** Remove from the Google spreadsheet - Moves from active manga to inactive manga - or marks inactive. TBD
      * @scope internal
      * @param key workbook key
-     * @param value the object to be deleleted. Uses manga URL.
+     * @param value the object to be deleted. Uses full manga object with gs and local.
      * @return _gssync ref
      */
     this.removeFromGS = function (key, value)
     {
         var _gssync = this;
-        if (value['status'] == 'inactive') {
+        if (value.local['status'] == 'inactive') {
             return _gssync;
         }
-        var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)$");
+        value.local['ts'] = Math.round((new Date()).getTime() / 1000);
+        return _gssync.updateInGS(key, value, "inactive");
+    }
+
+    /** Updates in the Google spreadsheet
+     * @scope internal
+     * @param key workbook key
+     * @param value the object to be deleted. Uses full manga object with gs and local.
+     * @param status the status status.
+     * @return _gssync ref
+     */
+    this.updateInGS = function (key, value, status)
+    {
+        var _gssync = this;
+        if (value.local['status'] == 'inactive') {
+            return _gssync;
+        }
         _gssync.options.debug >= 2 && console.log(_gssync.activeMangaSheetUrl);
+        var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)$");
         var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
-        var url = "http://spreadsheets.google.com/feeds/list/"+key+"/"+sheetKey+"/private/full";
+//        var url = "http://spreadsheets.google.com/feeds/list/" + key + "/" + sheetKey + "/private/full";
+        var url = value.gs.gskeyedit;
+
         _gssync.options.debug >= 4 && console.log(url);
-        value['status'] = 'inactive';
-        value['ts'] = Math.round((new Date()).getTime() / 1000);
+        if (!status || status)
+        {
+            value.local['status'] = 'active';
+        }
+        else {
+            value.local['status'] = status;
+        }
         var map = $(['mirror', 'name', 'url', 'lastChapterReadURL', 'lastChapterReadName', 'read', 'update', 'ts', 'display', 'cats', 'status'])
             .map(function () {
-                return '<gsx:' + this.toLowerCase() + '>' + value[this] + '</gsx:' + this.toLowerCase() + '>';
+                return '<gsx:' + this.toLowerCase() + '>' + value.local[this] + '</gsx:' + this.toLowerCase() + '>';
             });
         _gssync.options.debug >= 4 && console.log(map);
         var row = '<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended"> ' +
+            '<id>'+value.gs.gskey+'</id>' +
             map.toArray().join() +
             '</entry>';
         _gssync.options.debug >= 4 && console.log(row);
+
         $.ajax({
             url: url,
             accepts: {
                 xml: "application/xml"
             },
-            type: "POST",
+            type: "PUT",
             contentType: "application/atom+xml",
             data: row,
             success: function (data, textStatus, jqXHR)
@@ -210,6 +236,14 @@
                 response.find("entry").each(function (index, value)
                 {
                     var url = $(value).find("url").text();
+                    var gskeyedit = null;
+                    $.each( $(value).find("link"), function (index, value)
+                    {
+                        if (value.getAttribute("rel") == "edit")
+                        {
+                            gskeyedit = value.getAttribute("href");
+                        }
+                    });
                     var gsObj = {
                         url: url,
                         name: $(value).find("name").text(),
@@ -221,7 +255,9 @@
                         ts: $(value).find("ts").text(),
                         display: $(value).find("display").text(),
                         cats: $(value).find("cats").text(),
-                        status: $(value).find("status").text()
+                        status: $(value).find("status").text(),
+                        gskey: $(value).find("id").text(),
+                        gskeyedit: gskeyedit
                     };
                     actionMap[url] = {
                         'gs': gsObj
@@ -267,15 +303,18 @@
                         } else if (value.gs.ts < value.local.ts && value.gs.status == 'inactive')
                         {
                             _gssync.options.debug >= 2 && console.log("Manga undeleted / updated");
-                            _gssync.updateInGS(key, value); //TODO: write function
+                            _gssync.updateInGS(key, value, "active");
                         } else if (value.gs.ts > value.local.ts)
                         {
                             _gssync.options.debug >= 2 && console.log("Manga updated remote to local");
                             _gssync.options.readManga(value.gs);
                         } else if (value.gs.ts < value.local.ts)
                         {
-                            _gssync.options.debug >= 2 && console.log("Manga updated local to remote");
-                            _gssync.updateInGS(key, value); //TODO: write function
+                            if (value.gs.lastChapterReadURL != value.local.lastChapterReadURL) // Otherwise sync 'almost loop'
+                            {
+                                _gssync.options.debug >= 2 && console.log("Manga updated local to remote");
+                                _gssync.updateInGS(key, value, "active");
+                            }
                         }
                     }
                 });
