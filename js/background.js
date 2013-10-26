@@ -96,66 +96,26 @@ var gssync_obj = new GsSync({
         return params.gssyncUrl;
     },
 
-    /** Does the hard work of updating the manga list to match sync source.
+    /** Deletes a manga
      * @scope overridden "virtual" protected
-     * @param json Jsonified list of manga. see https://gist.github.com/arran4/4474b16cb7529804a5f8
-     * @param bookmark not used
+     * @param mangaURL manga URL.
      */
-    onRead : function (json) {
+    deleteManga: function (mangaUrl) {
+        return killManga({ url:mangaUrl }, function() {}, true);
+    },
 
-        return; // Until write works going to disable this part.
+    /** Read manga; this either updates the read chapter OR adds a manga.
+     * @scope overridden "virtual" protected
+     * @param value the json object for a manga.
+     */
+    readManga: function (value) {
+        return readManga(value, function() {}, true);
+    },
 
-
-      console.log('Reading incoming synchronisation');
-
-      if (!(json == undefined || json == null || json == "null")) {
-        console.log(' - Updating incoming entries');
-        // var lstTmp = $A(eval('(' + json.mangas + ')')); --> remove prototype usage
-        lstTmp = JSON.parse(json.mangas);
-        for (var i = 0; i < lstTmp.length; i++) {
-          var tmpManga = new MangaElt(lstTmp[i]);
-          console.log("\t - Reading manga entry : " + tmpManga.name + " in mirror : " + tmpManga.mirror);
-          var mangaExist = isInMangaList(tmpManga.url);
-          if (mangaExist == null) {
-            console.log("\t  --> Manga not found in current list, adding manga... ");
-            if (!isMirrorActivated(tmpManga.mirror)) {
-              activateMirror(tmpManga.mirror);
-            }
-            var last = mangaList.length;
-            mangaList[last] = tmpManga;
-            mangaList[last].refreshLast();
-            try {
-              _gaq.push(['_trackEvent', 'AddManga', tmpManga.mirror, tmpManga.name]);
-              //pageTracker._trackEvent('AddManga', newManga.name);
-            } catch (e) {}
-          } else {
-            //Verify chapter last
-            console.log("\t  --> Manga found in current list, verify last chapter read. incoming : " + tmpManga.lastChapterReadURL + "; current : " + mangaExist.lastChapterReadURL);
-            mangaExist.consult(tmpManga);
-            saveList();
-          }
-        }
-        console.log(' - Deleting mangas not in incoming list');
-        var deleteAr = [];
-        for (var i = 0; i < mangaList.length; i++) {
-          var found = false;
-          for (var j = 0; j < lstTmp.length; j++) {
-            var tmpManga = new MangaElt(lstTmp[j]);
-            if (mangaList[i].url == tmpManga.url) {
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            console.log("\t - Deleting manga entry in current list : " + mangaList[i].name + " in mirror : " + mangaList[i].mirror);
-            deleteAr[deleteAr.length] = i;
-          }
-        }
-        for (var i = deleteAr.length - 1; i >= 0; i--) {
-          mangaList.remove(deleteAr[i], deleteAr[i]);
-        }
-      }
-
+    /** Finalizes the sync
+     * @scope overridden "virtual" protected
+     */
+    syncDone : function () {
       saveList();
       refreshUpdateWith(this.syncedAt);
       refreshSync();

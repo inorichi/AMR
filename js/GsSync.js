@@ -88,6 +88,7 @@
      * @scope internal
      * @param key the work book key
      * @param value an object with the values to add
+     * @return _gssync ref
      */
     this.addToGS = function (key, value) {
         var _gssync = this;
@@ -96,7 +97,8 @@
         var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
         var url = "http://spreadsheets.google.com/feeds/list/"+key+"/"+sheetKey+"/private/full";
         _gssync.options.debug >= 4 && console.log(url);
-        var map = $(['mirror', 'name', 'url', 'lastChapterReadURL', 'lastChapterReadName', 'read', 'update', 'ts', 'display', 'cats'])
+        value['status'] = 'active';
+        var map = $(['mirror', 'name', 'url', 'lastChapterReadURL', 'lastChapterReadName', 'read', 'update', 'ts', 'display', 'cats', 'status'])
             .map(function () {
                 return '<gsx:' + this.toLowerCase() + '>' + value[this] + '</gsx:' + this.toLowerCase() + '>';
             });
@@ -128,6 +130,59 @@
 
         return _gssync;
     };
+
+    /** Remove from the Google spreadsheet - Moves from active manga to inactive manga - or marks inactive. TBD
+     * @scope internal
+     * @param key workbook key
+     * @param value the object to be deleleted. Uses manga URL.
+     * @return _gssync ref
+     */
+    this.removeFromGS = function (key, value)
+    {
+        var _gssync = this;
+        if (value['status'] == 'inactive') {
+            return _gssync;
+        }
+        var keyRegex = new RegExp("full/([A-Za-z0-9_-]+)$");
+        _gssync.options.debug >= 2 && console.log(_gssync.activeMangaSheetUrl);
+        var sheetKey = keyRegex.exec(_gssync.activeMangaSheetUrl)[1];
+        var url = "http://spreadsheets.google.com/feeds/list/"+key+"/"+sheetKey+"/private/full";
+        _gssync.options.debug >= 4 && console.log(url);
+        value['status'] = 'inactive';
+        value['ts'] = Math.round((new Date()).getTime() / 1000);
+        var map = $(['mirror', 'name', 'url', 'lastChapterReadURL', 'lastChapterReadName', 'read', 'update', 'ts', 'display', 'cats', 'status'])
+            .map(function () {
+                return '<gsx:' + this.toLowerCase() + '>' + value[this] + '</gsx:' + this.toLowerCase() + '>';
+            });
+        _gssync.options.debug >= 4 && console.log(map);
+        var row = '<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended"> ' +
+            map.toArray().join() +
+            '</entry>';
+        _gssync.options.debug >= 4 && console.log(row);
+        $.ajax({
+            url: url,
+            accepts: {
+                xml: "application/xml"
+            },
+            type: "POST",
+            contentType: "application/atom+xml",
+            data: row,
+            success: function (data, textStatus, jqXHR)
+            {
+                return _gssync;
+            },
+            error: function(jqXHR, textStatus, errorThrown)
+            {
+                _gssync.options.debug >= 1 && console.log(textStatus);
+                _gssync.options.debug >= 1 && console.log(errorThrown);
+                _gssync.options.debug >= 4 && console.log(jqXHR);
+            },
+            timeout: _gssync.options.timeout
+        });
+        return _gssync;
+    }
+
+
     /** Fetches the active mangga then syncs
      * @param key workbook key to be helpful.
      * @param forceWrite another way of saying, don't delete
@@ -152,68 +207,78 @@
             {
                 var response = $(data);
                 var actionMap = {};
-                var actionQueue = [];
                 response.find("entry").each(function (index, value)
                 {
-                    var url = $(value).find("url");
+                    var url = $(value).find("url").text();
+                    var gsObj = {
+                        url: url,
+                        name: $(value).find("name").text(),
+                        mirror: $(value).find("mirror").text(),
+                        lastChapterReadURL: $(value).find("lastChapterReadURL".toLocaleLowerCase()).text(),
+                        lastChapterReadName: $(value).find("lastChapterReadName".toLocaleLowerCase()).text(),
+                        read: $(value).find("read").text(),
+                        update: $(value).find("update").text(),
+                        ts: $(value).find("ts").text(),
+                        display: $(value).find("display").text(),
+                        cats: $(value).find("cats").text(),
+                        status: $(value).find("status").text()
+                    };
                     actionMap[url] = {
-                        url: $(value).find("url"),
-                        name: $(value).find("name"),
-                        mirror: $(value).find("mirror"),
-                        lastChapterReadUrl: $(value).find("lastChapterReadUrl"),
-                        lastChapterReadName: $(value).find("lastChapterReadName"),
-                        read: $(value).find("read"),
-                        update: $(value).find("update"),
-                        ts: $(value).find("ts"),
-                        display: $(value).find("display"),
-                        cats: $(value).find("cats"),
-                        source: "gs"
+                        'gs': gsObj
                     };
                 });
 
                 var curCollection = JSON.parse(_gssync.options.collect());
-                _gssync.options.debug >= 4 && console.log(actionMap);
                 _gssync.options.debug >= 4 && console.log(curCollection);
                 $.each(curCollection, function (index, value)
                 {
-                    if (!actionMap[value.url])
+                    if (!actionMap[value.url]) // Doesn't exist in remote
                     {
-                        // OK it doesn't exist in remote
-                        if (forceWrite)
-                        {
-                            // Skip deletion check just write it.
-                            var temp = value;
-                            temp['action'] = 'addToGS';
-                            actionQueue.push(temp);
-                        } else {
-                            //TODO: TBC
-                        }
-                    } else {
-                        // Exists in both
-                        //TODO:
+                        _gssync.options.debug >= 4 && console.log("at i " + index );
+                        _gssync.options.debug >= 4 && console.log(value.url);
+                        _gssync.options.debug >= 4 && console.log(actionMap[value.url]);
+                        actionMap[value.url] = {};
                     }
+                    actionMap[value.url].local = value;
                 });
-
-                $.each(actionQueue, function (index, value)
+                _gssync.options.debug >= 4 && console.log(actionMap);
+                $.each(actionMap, function (amkey, value)
                 {
-                    switch (value.action)
+                    _gssync.options.debug >= 2 && console.log("Syncing " + amkey);
+                    if (value.gs && !value.local)
                     {
-                        case 'addToGS':
-                            _gssync.addToGS(key, value);
-                            break;
+                        _gssync.options.debug >= 2 && console.log("remote but not local");
+                        if (value.gs.status == 'active')
+                        {
+                            _gssync.options.readManga(value.gs);
+                        }
+                        // _gssync.removeFromGS(key, value.local); //TODO: How?
+                    } else if (!value.gs && value.local)
+                    {
+                        _gssync.options.debug >= 2 && console.log("local but not remote");
+                        _gssync.addToGS(key, value.local);
+                    } else if (value.gs && value.local) // redundant but meh
+                    {
+                        _gssync.options.debug >= 2 && console.log("Actual sync");
+                        if (value.gs.ts > value.local.ts && value.gs.status == 'inactive')
+                        {
+                            _gssync.options.debug >= 2 && console.log("Delete manga from local list");
+                            _gssync.options.deleteManga(value.gs.url);
+                        } else if (value.gs.ts < value.local.ts && value.gs.status == 'inactive')
+                        {
+                            _gssync.options.debug >= 2 && console.log("Manga undeleted / updated");
+                            _gssync.updateInGS(key, value); //TODO: write function
+                        } else if (value.gs.ts > value.local.ts)
+                        {
+                            _gssync.options.debug >= 2 && console.log("Manga updated remote to local");
+                            _gssync.options.readManga(value.gs);
+                        } else if (value.gs.ts < value.local.ts)
+                        {
+                            _gssync.options.debug >= 2 && console.log("Manga updated local to remote");
+                            _gssync.updateInGS(key, value); //TODO: write function
+                        }
                     }
                 });
-
-                //TODO: == Got a response ==
-
-                // UPdate synced at time
-//                                _37.syncedAt = ts;
-
-                // If no bookmarks found or invalid write
-//                        _35.options.debug >= 1 && console.log("NO BOOKMARK FOUND > WRITING");
-//                        _35.options.collectThenWrite();
-//                        return _35.options.onError("MISSING BOOKMARK")
-
                 // update synced
 //                _35.synced = _37.syncedAt;
                 _gssync.doingSync = false;
@@ -245,7 +310,7 @@
             'xmlns:gs="http://schemas.google.com/spreadsheets/2006"> '+
             '<title>'+values['title']+'</title> '+
             '<gs:rowCount>50</gs:rowCount> '+
-            '<gs:colCount>10</gs:colCount> '+
+            '<gs:colCount>11</gs:colCount> '+
             '</entry>';
         _gssync.options.debug >= 4 && console.log(url);
         _gssync.options.debug >= 4 && console.log(content);
@@ -338,12 +403,15 @@
             _gssync.createCellEntry(url, 1, 7, 0, "update", batch),
             _gssync.createCellEntry(url, 1, 8, 0, "ts", batch),
             _gssync.createCellEntry(url, 1, 9, 0, "display", batch),
-            _gssync.createCellEntry(url, 1, 10, 0, "cats", batch) ];
+            _gssync.createCellEntry(url, 1, 10, 0, "cats", batch),
+            _gssync.createCellEntry(url, 1, 11, 0, "status", batch)
+        ];
 
 
         var initActiveMangaSheetRecurs = function ()
         {
             _gssync.options.debug >= 2 && console.log("Recurs");
+            var data = queue.pop();
             $.ajax({
                 url: url,
                 accepts: {
@@ -351,7 +419,7 @@
                 },
                 type: "POST",
                 contentType: "application/atom+xml",
-                data: queue.pop(),
+                data: data,
                 success: function (data, textStatus, jqXHR)
                 {
                     if (queue.length > 0)
@@ -365,6 +433,7 @@
                     _gssync.options.debug >= 1 && console.log(textStatus);
                     _gssync.options.debug >= 1 && console.log(errorThrown);
                     _gssync.options.debug >= 4 && console.log(jqXHR);
+                    _gssync.options.debug >= 4 && console.log(data);
                     _gssync.options.debug >= 4 && console.log(content);
                     _gssync.doingSync = false;
                 },
@@ -401,6 +470,7 @@
             _gssync.createCellEntry(url, 1, 8, 0, "ts", batch) +
             _gssync.createCellEntry(url, 1, 9, 0, "display", batch) +
             _gssync.createCellEntry(url, 1, 10, 0, "cats", batch) +
+            _gssync.createCellEntry(url, 1, 11, 0, "status", batch) +
 		    '</feed>';
 
         $.ajax({
@@ -517,8 +587,10 @@
      * @returns self or result of attach().
      */
     this.start = function () {
+        var _gssync = this;
         this.setupTimer();
         this.isRunning = true;
+        _gssync.doingSync = false;
         if (this.options.instantSync)
         {
             this.doSync();
