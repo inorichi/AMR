@@ -82,6 +82,8 @@
     "tabs",
     "http://*/*",
     "https://*/*",
+    "http://spreadsheets.google.com/*",
+    "https://spreadsheets.google.com/*",
     "https://ssl10.ovh.net/*",
     "unlimited_storage",
     "clipboardWrite",
