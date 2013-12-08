@@ -81,6 +81,7 @@
   "permissions" : [
     "tabs",
     "http://*/*",
+    "https://*/*",
     "https://ssl10.ovh.net/*",
     "unlimited_storage",
     "clipboardWrite",
