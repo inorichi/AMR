@@ -589,6 +589,11 @@
             type: "GET",
             success: function (data, textStatus, jqXHR)
             {
+                if (data == "")
+                {
+                    console.log("Worksheet is empty; probably a cookie issue. Please login to Gmail/Chrome Sync");
+                    return _gssync;
+                }
                 var response = $(data);
                 _gssync.options.debug >= 2 && console.log("Got books.");
                 response.find("entry").each(function (index, value)
