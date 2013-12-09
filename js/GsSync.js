@@ -60,6 +60,15 @@
         return this
     }
 
+    /** Get the key of the spreadsheet
+     * @returns key
+     */
+    this.getKey = function() {
+        var url = this.options.getGSUrl();
+        var keyRegex = new RegExp("key=([A-Za-z0-9_-]+)");
+        return keyRegex.exec(url)[1];
+    };
+
     /** Starts the sync operation, called by timer def in setupTimer()
      * @scope internal
      */
@@ -80,6 +89,9 @@
         if (!_gssync.activeMangaSheetUrl)
         {
             this.getWorkbook();
+        }
+        else {
+            this.syncActiveManga(_gssync.getKey(), false);
         }
         return _gssync;
     };
@@ -577,9 +589,7 @@
      */
     this.getWorkbook = function () {
         var _gssync = this;
-        var url = this.options.getGSUrl();
-        var keyRegex = new RegExp("key=([A-Za-z0-9_-]+)");
-        var key = keyRegex.exec(url)[1];
+        var key = _gssync.getKey();
         _gssync.options.debug >= 4 && console.log( "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full");
         $.ajax({
             url: "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full",
