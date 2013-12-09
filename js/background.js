@@ -72,7 +72,70 @@ Date.prototype.getWeek = function (dowOffset) {
   }
   return weeknum;
 };
-// Here we shouldn't be using this...
+// Here we shouldn't be using this... - I suggest making this an abstract object so ppl can choose sync methods without
+// causing much rewriting each time and pass in or set dependencies.
+var gssync_obj = new GsSync({
+    /**^ Exists for scope insertation............ Yes...... */
+
+    /** Returns the last updated time for parent
+     * @scope overridden "virtual" protected
+     * @returns Last updated time in unix time
+     */
+    getUpdate : function () {
+      //console.log('GET UPDATE');
+      var params = getParameters();
+      return params.updated;
+    },
+
+    /**
+     * Inserts the spreadsheet URL into context
+     * @returns {*}
+     */
+    getGSUrl : function () {
+        var params = getParameters();
+        return params.gssyncUrl;
+    },
+
+    /** Deletes a manga
+     * @scope overridden "virtual" protected
+     * @param mangaURL manga URL.
+     */
+    deleteManga: function (mangaUrl) {
+        return killManga({ url:mangaUrl }, function(x) {return x;}, true);
+    },
+
+    /** Read manga; this either updates the read chapter OR adds a manga.
+     * @scope overridden "virtual" protected
+     * @param value the json object for a manga.
+     */
+    readManga: function (value) {
+        value.update = 1;
+        return readManga(value, function(x) {return x;}, true);
+        //return
+//        updateManga("", value);
+//        saveList();
+    },
+
+    /** Finalizes the sync
+     * @scope overridden "virtual" protected
+     */
+    syncDone : function () {
+      saveList();
+      refreshUpdateWith(this.syncedAt);
+      refreshSync();
+    },
+
+    /** Retrieves details from instance for sync write process.. Passes them back via write() "callback."
+     * @scope overridden "virtual" protected
+     */
+    collect: function () {
+      console.log('Writing current configuration to synchronise');
+      var params = getParameters();
+      return getJSONListToSync();
+//      refreshSync();
+    }
+});
+// bsync_obj maybe?
 var sync = new BSync({
     getUpdate : function () {
       //console.log('GET UPDATE');
@@ -309,8 +372,12 @@ function init() {
         }
         saveList();
         if (pars.sync == 1) {
-            console.log("synchronization started");
+            console.log("bookmark synchronization started");
             sync.start();
+        }
+        if (pars.gssync == 1) {
+            console.log("google spreadsheet synchronization started");
+            gssync_obj.start();
         }
         if (!localStorage["lastChaptersUpdate"]) {
             refreshAllLasts();
@@ -780,6 +847,8 @@ chrome.extension.onRequest.addListener(function (request, sender, sendResponse) 
         obj.omSite = request.omSite;
         obj.newTab = request.newTab;
         obj.sync = request.sync;
+        obj.gssync = request.gssync;
+        obj.gssyncUrl = request.gssyncUrl;
         obj.displayzero = request.displayzero;
         obj.pub = request.pub;
         obj.dev = request.dev;
@@ -813,17 +882,34 @@ chrome.extension.onRequest.addListener(function (request, sender, sendResponse) 
         obj.syncAMR = ancParams.syncAMR;
         if (ancParams.sync != obj.sync) {
             if (obj.sync == 1) {
-                console.log("synchronization started (parameter update)");
+                console.log("bookmark synchronization started (parameter update)");
                 sync.start();
                 try {
                     _gaq.push(['_trackEvent', 'Sync', 'activate']);
                 } catch (e) {}
 
             } else {
-                console.log("synchronization stopped (parameter update)");
+                console.log("bookmark synchronization stopped (parameter update)");
                 sync.stop();
                 try {
                     _gaq.push(['_trackEvent', 'Sync', 'desactivate']);
+                } catch (e) {}
+
+            }
+        }
+        if (ancParams.gssync != obj.gssync) {
+            if (obj.gssync == 1) {
+                console.log("google spreadsheet synchronization started (parameter update)");
+                gssync_obj.start();
+                try {
+                    _gaq.push(['_trackEvent', 'GsSync', 'activate']);
+                } catch (e) {}
+
+            } else {
+                console.log("google spreadsheet synchronization stopped (parameter update)");
+                gssync_obj.stop();
+                try {
+                    _gaq.push(['_trackEvent', 'GsSync', 'deactivate']);
                 } catch (e) {}
 
             }
@@ -1425,6 +1511,8 @@ function getParameters() {
         initParam(res, "omSite", 0);
         initParam(res, "newTab", 0);
         initParam(res, "sync", 0);
+        initParam(res, "gssync", 0);
+        initParam(res, "gssyncUrl", "");
         initParam(res, "displayzero", 1);
         initParam(res, "pub", 1);
         initParam(res, "dev", 0);
@@ -1466,6 +1554,8 @@ function defaultParams() {
     obj.omSite = 0;
     obj.newTab = 0;
     obj.sync = 0;
+    obj.gssync = 0;
+    obj.gssyncUrl = "";
     obj.displayzero = 1;
     obj.pub = 1;
     obj.dev = 0;
@@ -1960,6 +2050,33 @@ function deleteMangas(mangasToDel) {
         mangaList.remove(deleteAr[i], deleteAr[i]);
     }
 }
+function updateManga(textOut, tmpManga) {
+    textOut += "\t - " + translate("background_impexp_read", [tmpManga.name, tmpManga.mirror]) + "\n";
+    var mangaExist = isInMangaList(tmpManga.url);
+    if (mangaExist == null) {
+        textOut += "\t  --> " + translate("background_impexp_mg_notfound") + "\n";
+        if (!isMirrorActivated(tmpManga.mirror)) {
+            activateMirror(tmpManga.mirror);
+        }
+        var last = mangaList.length;
+        mangaList[last] = tmpManga;
+        try {
+            _gaq.push(['_trackEvent', 'AddManga', tmpManga.mirror, tmpManga.name]);
+        } catch (e) {
+        }
+
+    } else {
+        textOut += "\t  --> " + translate("background_impexp_mg_syncchap", [tmpManga.lastChapterReadURL, mangaExist.lastChapterReadURL]) + "\n";
+        mangaExist.consult(tmpManga);
+        try {
+            _gaq.push(['_trackEvent', 'ReadManga', tmpManga.mirror, tmpManga.name]);
+            _gaq.push(['_trackEvent', 'ReadMangaChapter', tmpManga.name, tmpManga.lastChapterReadName]);
+        } catch (e) {
+        }
+
+    }
+    return {textOut: textOut, mangaExist: mangaExist, last: last};
+}
 function importMangas(mangas, merge) {
     var textOut = "";
     if (!merge) {
@@ -1981,28 +2098,10 @@ function importMangas(mangas, merge) {
     var lstTmp = mangas;
     for (var i = 0; i < lstTmp.length; i++) {
         var tmpManga = new MangaElt(lstTmp[i]);
-        textOut += "\t - " + translate("background_impexp_read", [tmpManga.name, tmpManga.mirror]) + "\n";
-        var mangaExist = isInMangaList(tmpManga.url);
-        if (mangaExist == null) {
-            textOut += "\t  --> " + translate("background_impexp_mg_notfound") + "\n";
-            if (!isMirrorActivated(tmpManga.mirror)) {
-                activateMirror(tmpManga.mirror);
-            }
-            var last = mangaList.length;
-            mangaList[last] = tmpManga;
-            try {
-                _gaq.push(['_trackEvent', 'AddManga', tmpManga.mirror, tmpManga.name]);
-            } catch (e) {}
-
-        } else {
-            textOut += "\t  --> " + translate("background_impexp_mg_syncchap", [tmpManga.lastChapterReadURL, mangaExist.lastChapterReadURL]) + "\n";
-            mangaExist.consult(tmpManga);
-            try {
-                _gaq.push(['_trackEvent', 'ReadManga', tmpManga.mirror, tmpManga.name]);
-                _gaq.push(['_trackEvent', 'ReadMangaChapter', tmpManga.name, tmpManga.lastChapterReadName]);
-            } catch (e) {}
-
-        }
+        var __ret = updateManga(textOut, tmpManga);
+        textOut = __ret.textOut;
+        var mangaExist = __ret.mangaExist;
+        var last = __ret.last;
     }
     refreshAllLasts();
     return textOut;

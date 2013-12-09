@@ -24,6 +24,7 @@
         "js/MangaElt.js",
         "js/mgEntry.js",
         "js/BSync.js",
+        "js/GsSync.js",
         "js/analytics.js",
         "js/personalstat.js",
         "js/wssql.js",
@@ -80,6 +81,9 @@
   "permissions" : [
     "tabs",
     "http://*/*",
+    "https://*/*",
+    "http://spreadsheets.google.com/*",
+    "https://spreadsheets.google.com/*",
     "https://ssl10.ovh.net/*",
     "unlimited_storage",
     "clipboardWrite",

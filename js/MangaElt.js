@@ -71,6 +71,8 @@ function MangaElt(obj) {
         posNew = i;
       }
     }
+      console.log("posNew");
+      console.log(posNew);
     if (posNew === -1) {
       //New chapter is not in chapters list --> Reload chapter list
       if (getMangaMirror(this.mirror) !== null && this.update === 1) {
