@@ -121,10 +121,8 @@
         _gssync.options.debug >= 4 && console.log(row);
         $.ajax({
             url: url,
-            accepts: {
-                xml: "application/xml"
-            },
             type: "POST",
+            dataType: "xml",
             contentType: "application/atom+xml",
             data: row,
             success: function (data, textStatus, jqXHR)
@@ -199,10 +197,8 @@
 
         $.ajax({
             url: url,
-            accepts: {
-                xml: "application/xml"
-            },
             type: "PUT",
+            dataType: "xml",
             contentType: "application/atom+xml",
             data: row,
             success: function (data, textStatus, jqXHR)
@@ -237,10 +233,8 @@
 
         $.ajax({
             url: url,
-            accepts: {
-                xml: "application/xml"
-            },
             type: "GET",
+            dataType: "xml",
             success: function (data, textStatus, jqXHR)
             {
                 var response = $(data);
@@ -367,10 +361,8 @@
         _gssync.options.debug >= 4 && console.log(content);
         $.ajax({
             url: url,
-            accepts: {
-                xml: "application/xml"
-            },
             data: content,
+            dataType: "xml",
             contentType: "application/atom+xml",
             type: "POST",
             success: function (data, textStatus, jqXHR)
@@ -465,10 +457,8 @@
             var data = queue.pop();
             $.ajax({
                 url: url,
-                accepts: {
-                    xml: "application/xml"
-                },
                 type: "POST",
+                dataType: "xml",
                 contentType: "application/atom+xml",
                 data: data,
                 success: function (data, textStatus, jqXHR)
@@ -526,10 +516,8 @@
 
         $.ajax({
             url: url + "/batch",
-            accepts: {
-                xml: "application/xml"
-            },
             type: "PUT",
+            dataType: "xml",
             contentType: "application/atom+xml",
             data: content,
             success: function (data, textStatus, jqXHR)
@@ -593,10 +581,8 @@
         _gssync.options.debug >= 4 && console.log( "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full");
         $.ajax({
             url: "http://spreadsheets.google.com/feeds/worksheets/"+key+"/private/full",
-            accepts: {
-                xml: "application/xml"
-            },
             type: "GET",
+            dataType: "xml",
             success: function (data, textStatus, jqXHR)
             {
                 if (data == "")
