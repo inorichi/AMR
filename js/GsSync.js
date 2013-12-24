@@ -586,9 +586,19 @@
             dataType: "xml",
             success: function (data, textStatus, jqXHR)
             {
-                if (data == "")
+                if (data == "" || jqXHR.responseText == "")
                 {
                     console.log("Worksheet is empty; probably a cookie issue. Please login to Gmail/Chrome Sync");
+                    var notif = window.webkitNotifications.createNotification(
+                        chrome.extension.getURL('img/icon-32.png'), "Authentication error", "Couldn't get the spreadsheet. Please login to Gmail.");
+                    notif.onclick = function() {
+                        notif.cancel();
+                    };
+                    notif.show();
+                    setTimeout(function () {
+                      notif.cancel();
+                    }, 5000);
+                    _gssync.doingSync = false;
                     return _gssync;
                 }
                 var response = $(data);
