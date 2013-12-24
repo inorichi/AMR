@@ -327,6 +327,7 @@
                 // update synced
 //                _35.synced = _37.syncedAt;
                 _gssync.doingSync = false;
+                _gssync.options.syncDone();
 
             },
             error: function(jqXHR, textStatus, errorThrown)

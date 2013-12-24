@@ -122,7 +122,7 @@ var gssync_obj = new GsSync({
     syncDone : function () {
       saveList();
       refreshUpdateWith(this.syncedAt);
-      refreshSync();
+      refreshGsSync();
     },
 
     /** Retrieves details from instance for sync write process.. Passes them back via write() "callback."
@@ -1945,6 +1945,14 @@ function refreshSync() {
     try {
         var params = getParameters();
         params.lastsync = new Date().getTime();
+        localStorage["parameters"] = JSON.stringify(params);
+    } catch (e) {}
+
+}
+function refreshGsSync() {
+    try {
+        var params = getParameters();
+        params.gslastsync = new Date().getTime();
         localStorage["parameters"] = JSON.stringify(params);
     } catch (e) {}
 
