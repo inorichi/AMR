@@ -237,6 +237,20 @@
             dataType: "xml",
             success: function (data, textStatus, jqXHR)
             {
+                if (data == "" || jqXHR.responseText == "")
+                {
+                    var notif = window.webkitNotifications.createNotification(
+                        chrome.extension.getURL('img/icon-32.png'), "Authentication error", "Couldn't get the spreadsheet. Please login to Gmail.");
+                    notif.onclick = function() {
+                        notif.cancel();
+                    };
+                    notif.show();
+                    setTimeout(function () {
+                      notif.cancel();
+                    }, 5000);
+                    _gssync.doingSync = false;
+                    return _gssync;
+                }
                 var response = $(data);
                 var actionMap = {};
                 response.find("entry").each(function (index, value)
