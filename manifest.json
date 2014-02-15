@@ -34,7 +34,8 @@
   },
   "content_scripts" : [{
       "matches" : [
-        "http://*/*"
+        "http://*/*",
+        "https://*/"
       ],
       "exclude_matches" : [
         "http://*.allmangasreader.com/*"
@@ -50,7 +51,8 @@
         "http://*.allmangasreader.com/*"
       ],
       "exclude_matches" : [
-        "http://wiki.allmangasreader.com/*"
+        "http://wiki.allmangasreader.com/*",
+        "http://allmanagesreader.com/forum/*"
       ],
       "css" : [
         "css/backsite.css"
