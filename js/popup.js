@@ -2351,9 +2351,9 @@ function bindFoot() {
       }
     });
     $(".bottomdiv.timers").toggle("blind", {}, 500);
-    var html = "<span>Chapters lists have been updated <b>" + getTimeSince(localStorage["lastChaptersUpdate"]) + "</b></span><div class='button refreshmgchapnow' style='margin-left:5px;'>Refresh</div><br />";
+    var html = "<div id='mgchap'><span>Chapters lists have been updated <b>" + getTimeSince(localStorage["lastChaptersUpdate"]) + "</b></span><div class='button refreshmgchapnow' style='margin-left:5px;'>Refresh</div><br /></div>";
     html += "<span>Manga lists have been updated <b>" + getTimeSince(localStorage["lastMangasUpdate"]) + "</b></span><br />";
-    html += "<span>Websites implementations have been updated <b>" + getTimeSince(localStorage["lastWsUpdate"]) + "</b></span><div class='button refreshwsnow' style='margin-left:5px;'>Refresh</div>";
+    html += "<div id='wsupd'><span>Websites implementations have been updated <b>" + getTimeSince(localStorage["lastWsUpdate"]) + "</b></span><div class='button refreshwsnow' style='margin-left:5px;'>Refresh</div></div>";
     if (parameters.sync === 1) {
       html += "<br /><span>All Mangas Reader has been sychronized <b>" + getTimeSince(parameters.lastsync) + "</b></span>";
     }
@@ -2362,52 +2362,14 @@ function bindFoot() {
     }
     $(".bottomdiv.timers").html(html);
     $(".refreshmgchapnow").click(function () {
-      $(this).remove();
       var html = "<span>Chapters lists have been updated <b>" + getTimeSince(localStorage["lastChaptersUpdate"]) + "</b>. Chapters refresh has been launched, you must reload the popup to see changes.</span><br />";
-      html += "<span>Manga lists have been updated <b>" + getTimeSince(localStorage["lastMangasUpdate"]) + "</b></span><br />";
-      html += "<span>Websites implementations have been updated <b>" + getTimeSince(localStorage["lastWsUpdate"]) + "</b></span><div class='button refreshwsnow' style='margin-left:5px;'>Refresh</div>";
-      if (parameters.sync === 1) {
-        html += "<br /><span>All Mangas Reader has been sychronized <b>" + getTimeSince(parameters.lastsync) + "</b></span>";
-      }
-      if (parameters.gssync === 1) {
-        html += "<br /><span>All Mangas Reader has been gs sychronized <b>" + getTimeSince(parameters.gslastsync) + "</b></span>";
-      }
-      $(".bottomdiv.timers").html(html);
+      $("#mgchap").html(html);
       chrome.extension.getBackgroundPage().refreshAllLasts(true, true);
-      var html = "<span>Chapters lists have been updated <b>" + getTimeSince(localStorage["lastChaptersUpdate"]) + "</b>. Chapters refresh has been launched, you must reload the popup to see changes.</span><br />";
-      html += "<span>Manga lists have been updated <b>" + getTimeSince(localStorage["lastMangasUpdate"]) + "</b></span><br />";
-      html += "<span>Websites implementations have been updated <b>" + getTimeSince(localStorage["lastWsUpdate"]) + "</b></span><div class='button refreshwsnow' style='margin-left:5px;'>Refresh</div>";
-      if (parameters.sync === 1) {
-        html += "<br /><span>All Mangas Reader has been sychronized <b>" + getTimeSince(parameters.lastsync) + "</b></span>";
-      }
-      if (parameters.gssync === 1) {
-        html += "<br /><span>All Mangas Reader has been gs sychronized <b>" + getTimeSince(parameters.gslastsync) + "</b></span>";
-      }
-      $(".bottomdiv.timers").html(html);
     });
     $(".refreshwsnow").click(function () {
-      $(this).remove();
-      var html = "<span>Chapters lists have been updated <b>" + getTimeSince(localStorage["lastChaptersUpdate"]) + "</b></span><div class='button refreshmgchapnow' style='margin-left:5px;'>Refresh</div><br />";
-      html += "<span>Manga lists have been updated <b>" + getTimeSince(localStorage["lastMangasUpdate"]) + "</b></span><br />";
-      html += "<span>Websites implementations have been updated <b>" + getTimeSince(localStorage["lastWsUpdate"]) + "</b>. Websites refresh has been launched...</span><br />";
-      if (parameters.sync === 1) {
-        html += "<br /><span>All Mangas Reader has been sychronized <b>" + getTimeSince(parameters.lastsync) + "</b></span>";
-      }
-      if (parameters.gssync === 1) {
-        html += "<br /><span>All Mangas Reader has been gs sychronized <b>" + getTimeSince(parameters.gslastsync) + "</b></span>";
-      }
-      $(".bottomdiv.timers").html(html);
+      var html = "<span>Websites implementations have been updated <b>" + getTimeSince(localStorage["lastWsUpdate"]) + "</b>. Websites refresh has been launched...</span>";
+      $("#wsupd").html(html);
       chrome.extension.getBackgroundPage().refreshWebsites(true, true);
-      var html = "<span>Chapters lists have been updated <b>" + getTimeSince(localStorage["lastChaptersUpdate"]) + "</b></span><div class='button refreshmgchapnow' style='margin-left:5px;'>Refresh</div><br />";
-      html += "<span>Manga lists have been updated <b>" + getTimeSince(localStorage["lastMangasUpdate"]) + "</b></span><br />";
-      html += "<span>Websites implementations have been updated <b>" + getTimeSince(localStorage["lastWsUpdate"]) + "</b>. Websites refresh has been launched...</span><br />";
-      if (parameters.sync === 1) {
-        html += "<br /><span>All Mangas Reader has been sychronized <b>" + getTimeSince(parameters.lastsync) + "</b></span>";
-      }
-      if (parameters.gssync === 1) {
-        html += "<br /><span>All Mangas Reader has been gs sychronized <b>" + getTimeSince(parameters.gslastsync) + "</b></span>";
-      }
-      $(".bottomdiv.timers").html(html);
     });
   });
   $("#donate").click(function () {
