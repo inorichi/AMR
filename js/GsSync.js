@@ -9,7 +9,7 @@
      * @scope Internal
      * */
     this.initialize = function (_19) {
-        this.options.debug = 4; // -1 nothing ever, 0 error, 1 warn 2 info 4 trace
+        this.options.debug = 0; // -1 nothing ever, 0 error, 1 warn 2 info 4 trace
         this.options.instantSync = true; // debug only
         this.options.idleInterval = 30000;
         this.options.interval = 300000;
@@ -30,7 +30,7 @@
         }
         console.log("Setting timer to run " + this.options.interval);
         this.timer = setInterval(function () {
-            _gssync.options.debug >= 0 && console.log("GsSync Tick");
+            _gssync.options.debug >= 2 && console.log("GsSync Tick");
             _gssync.doSync();
         }, this.options.interval);
         return _gssync;
@@ -75,7 +75,7 @@
     this.doSync = function ()
     {
         var _gssync = this;
-        _gssync.options.debug >= 0 && console.log("GsSync Tick: doSync");
+        _gssync.options.debug >= 2 && console.log("GsSync Tick: doSync");
         // Check to ensure ((new Date().getTime() - this.options.getUpdate()) < this.options.idleInterval
 //        if (!_34 && this.options.testNetwork && !this.folder) {
 //            return this.testNetwork()
